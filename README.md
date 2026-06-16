@@ -1,15 +1,15 @@
-# SkillSpector
+# PluginSpector
 
-**Security scanner for AI agent skills.** Detect vulnerabilities, malicious patterns, and security risks before installing agent skills.
+**Security scanner for Claude Code plugins and AI agent skills.** Detect vulnerabilities, malicious patterns, and security risks before installing them.
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## Overview
 
-AI agent skills (used by Claude Code, Codex CLI, Gemini CLI, etc.) execute with implicit trust and minimal vetting. Research shows that **26.1% of skills contain vulnerabilities** and **5.2% show likely malicious intent**.
+Claude Code plugins and AI agent skills (also used by Codex CLI, Gemini CLI, etc.) execute with implicit trust and minimal vetting. Research on agent skills shows that **26.1% contain vulnerabilities** and **5.2% show likely malicious intent**.
 
-SkillSpector helps you answer: **"Is this skill safe to install?"**
+PluginSpector helps you answer: **"Is this plugin or skill safe to install?"** It parses Claude Code plugins as executable capability graphs (manifest, hooks, MCP/LSP config, agents, bin/, monitors) in addition to scanning standalone skills.
 
 ## Documentation
 
@@ -32,8 +32,8 @@ Create and activate a virtual environment first (all `make` targets assume the v
 
 ```bash
 # Clone the repository
-git clone https://github.com/NVIDIA/skillspector.git
-cd skillspector
+git clone https://github.com/f4ah6o/PluginSpector.git
+cd PluginSpector
 
 # Create and activate virtual environment
 uv venv .venv && source .venv/bin/activate
@@ -48,7 +48,7 @@ make install-dev
 
 ### Docker (no Python required)
 
-Run SkillSpector without installing Python by building it locally from the included [Dockerfile](Dockerfile). The image is based on the Docker Official Python `3.12-slim-bookworm` image.
+Run PluginSpector without installing Python by building it locally from the included [Dockerfile](Dockerfile). The image is based on the Docker Official Python `3.12-slim-bookworm` image.
 
 **Build the image:**
 
@@ -140,7 +140,7 @@ skillspector scan ./my-skill/ --format sarif --output report.sarif
 
 For the best results, configure an OpenAI-compatible LLM endpoint for
 semantic analysis. Pick a provider with `SKILLSPECTOR_PROVIDER`; each
-ships its own bundled default model. SkillSpector also works against
+ships its own bundled default model. PluginSpector also works against
 local OpenAI-compatible servers (Ollama, vLLM, llama.cpp) and managed
 inference gateways.
 
@@ -183,7 +183,7 @@ skillspector scan ./my-skill/ --no-llm
 
 ## Vulnerability Patterns
 
-SkillSpector detects **81 vulnerability patterns** across 24 categories:
+PluginSpector detects **81 vulnerability patterns** across 24 categories:
 
 ### Prompt Injection (5 patterns)
 
@@ -331,7 +331,7 @@ SkillSpector detects **81 vulnerability patterns** across 24 categories:
 
 ### Claude Plugin Structure (3 patterns)
 
-When the scan target is a Claude Code plugin (detected via `.claude-plugin/plugin.json`), SkillSpector parses the plugin as a capability graph and applies the following plugin-aware rules.
+When the scan target is a Claude Code plugin (detected via `.claude-plugin/plugin.json`), PluginSpector parses the plugin as a capability graph and applies the following plugin-aware rules.
 
 | ID | Pattern | Severity | Description |
 |----|---------|----------|-------------|
@@ -470,8 +470,8 @@ All `make` targets assume a virtual environment is already created and activated
 
 ```bash
 # Clone, create venv, activate, install dev dependencies
-git clone https://github.com/NVIDIA/skillspector.git
-cd skillspector
+git clone https://github.com/f4ah6o/PluginSpector.git
+cd PluginSpector
 uv venv .venv && source .venv/bin/activate
 # or: python3 -m venv .venv && source .venv/bin/activate
 make install-dev
@@ -491,7 +491,7 @@ make format
 
 ## How It Works
 
-SkillSpector uses a two-stage detection pipeline:
+PluginSpector uses a two-stage detection pipeline:
 
 ### Stage 1: Static Analysis
 - Fast regex-based pattern matching across 11 static analyzers
@@ -568,4 +568,4 @@ Contributions are welcome! Please read our contributing guidelines and submit pu
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/NVIDIA/skillspector/issues)
+- **Issues**: [GitHub Issues](https://github.com/f4ah6o/PluginSpector/issues)
