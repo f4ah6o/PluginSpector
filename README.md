@@ -18,7 +18,7 @@ SkillSpector helps you answer: **"Is this skill safe to install?"**
 ## Features
 
 - **Multi-format input**: Scan Git repos, URLs, zip files, directories, or single files
-- **64 vulnerability patterns** across 16 categories: prompt injection, data exfiltration, privilege escalation, supply chain, excessive agency, output handling, system prompt leakage, memory poisoning, tool misuse, rogue agent, trigger abuse, dangerous code (AST), taint tracking, YARA signatures, MCP least privilege, and MCP tool poisoning
+- **81 vulnerability patterns** across 24 categories: prompt injection, data exfiltration, privilege escalation, supply chain, excessive agency, output handling, system prompt leakage, memory poisoning, tool misuse, rogue agent, trigger abuse, dangerous code (AST), taint tracking, YARA signatures, MCP least privilege, MCP tool poisoning, and first-class **Claude Code plugin** analysis (manifest/structure, hooks, MCP/LSP config, agents, bin/, monitors, dependencies, and cross-component capability correlation)
 - **Two-stage analysis**: Fast static analysis + optional LLM semantic evaluation
 - **Live vulnerability lookups**: SC4 queries [OSV.dev](https://osv.dev) for real-time CVE data with automatic offline fallback
 - **Multiple output formats**: Terminal, JSON, Markdown, and SARIF reports
@@ -183,7 +183,7 @@ skillspector scan ./my-skill/ --no-llm
 
 ## Vulnerability Patterns
 
-SkillSpector detects **64 vulnerability patterns** across 16 categories:
+SkillSpector detects **81 vulnerability patterns** across 24 categories:
 
 ### Prompt Injection (5 patterns)
 
@@ -328,6 +328,50 @@ SkillSpector detects **64 vulnerability patterns** across 16 categories:
 | TP2 | Unicode Deception | HIGH | Homoglyphs, RTL overrides, mixed-script identifiers in tool metadata |
 | TP3 | Parameter Description Injection | MEDIUM | Injection patterns in parameter definitions (overrides, system tokens, malicious defaults) |
 | TP4 | Description-Behavior Mismatch | MEDIUM | Declared tool description does not match actual code behavior (LLM-powered) |
+
+### Claude Plugin Structure (3 patterns)
+
+When the scan target is a Claude Code plugin (detected via `.claude-plugin/plugin.json`), SkillSpector parses the plugin as a capability graph and applies the following plugin-aware rules.
+
+| ID | Pattern | Severity | Description |
+|----|---------|----------|-------------|
+| CP001 | Invalid Plugin Manifest | MEDIUM | `plugin.json` is malformed, missing required fields, or has wrong field types |
+| CP002 | Component Path Escape | HIGH | A declared component path resolves outside the plugin root (path traversal) |
+| CP003 | Symlink Escape | HIGH | A symlink inside the plugin points to a target outside the plugin root |
+
+### Claude Hooks (4 patterns)
+
+| ID | Pattern | Severity | Description |
+|----|---------|----------|-------------|
+| HK001 | Hook Shell Execution | MEDIUM | A hook executes a shell command |
+| HK002 | Hook External HTTP | HIGH | A hook calls an external HTTP endpoint |
+| HK003 | Lifecycle Hook External Command | HIGH | An automatic lifecycle hook (e.g. SessionStart) executes an external command |
+| HK004 | Hook Download-and-Execute | CRITICAL | A hook downloads and executes remote code (e.g. `curl ... \| sh`) |
+
+### Claude MCP/LSP Configuration (3 patterns)
+
+| ID | Pattern | Severity | Description |
+|----|---------|----------|-------------|
+| MCP001 | Unpinned Runtime Package | HIGH | MCP server runs an unpinned package (e.g. `npx -y`, `uvx`) |
+| MCP002 | Embedded MCP Secret | CRITICAL | A secret (API key/token/password) is embedded directly in MCP config |
+| MCP003 | Insecure MCP Transport | HIGH | A remote MCP endpoint uses insecure `http://` transport |
+
+### Claude Components (4 patterns)
+
+| ID | Pattern | Severity | Description |
+|----|---------|----------|-------------|
+| AG001 | Broad Agent Permissions | MEDIUM | An agent declares broad Bash or write permissions |
+| BIN001 | Bin Command Shadowing | HIGH | A `bin/` entry shadows a common command (git, node, python, …) |
+| MON001 | Persistent Background Monitor | MEDIUM | A monitor starts persistent background execution |
+| DEP001 | Unpinned Plugin Dependency | MEDIUM | A plugin dependency is not pinned to an immutable revision |
+
+### Capability Correlation (3 patterns)
+
+| ID | Pattern | Severity | Description |
+|----|---------|----------|-------------|
+| CC001 | Secret Access + Network Egress | HIGH | A component both accesses secrets and performs network egress |
+| CC002 | Auto Activation + Process Execution | HIGH | An automatically-activated component executes a process |
+| CC003 | Background Execution + Network Access | HIGH | A background component has external network access |
 
 All detected patterns are listed in the tables above.
 

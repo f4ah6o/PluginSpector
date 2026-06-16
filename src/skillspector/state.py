@@ -43,6 +43,13 @@ class SkillspectorState(TypedDict, total=False):
     manifest: dict[str, object]
     previous_manifest: dict[str, object] | None
 
+    # Claude Code target classification and parsed plugin structure (build_context).
+    # target_type: standalone-skill | claude-plugin | claude-marketplace | generic-directory.
+    # plugin_model: serialized PluginModel (see skillspector.claude_plugin); empty components
+    # for non-plugin targets so the Claude analyzers no-op.
+    target_type: str
+    plugin_model: dict[str, object]
+
     # Accumulated findings (reducer: analyzer nodes append to this list)
     findings: Annotated[list[Finding], operator.add]
     filtered_findings: list[Finding]

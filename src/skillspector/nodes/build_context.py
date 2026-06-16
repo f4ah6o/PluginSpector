@@ -22,10 +22,12 @@ from a local skill directory.
 from __future__ import annotations
 
 import re
+import stat
 from pathlib import Path
 
 import yaml
 
+from skillspector.claude_plugin import parse_plugin
 from skillspector.constants import MODEL_CONFIG
 from skillspector.logging_config import get_logger
 from skillspector.state import SkillspectorState
@@ -36,6 +38,10 @@ logger = get_logger(__name__)
 _SKIP_DIRS = frozenset(
     {".git", "__pycache__", "node_modules", ".venv", "venv", ".tox", ".pytest_cache"}
 )
+
+# Dotfiles that are first-class Claude plugin components and must be collected
+# despite the general "skip hidden files" rule.
+_INCLUDED_DOTFILES = frozenset({".mcp.json", ".lsp.json"})
 
 # File type by extension
 _FILE_TYPES: dict[str, str] = {
@@ -81,13 +87,25 @@ def _walk_skill_files(skill_dir: Path) -> list[str]:
     Skips _SKIP_DIRS and hidden files except those starting with .claude.
     """
     paths: list[str] = []
+    skill_dir_resolved = skill_dir.resolve()
     for item in skill_dir.rglob("*"):
         if not item.is_file():
             continue
         if any(skip in item.parts for skip in _SKIP_DIRS):
             continue
-        if item.name.startswith(".") and not item.name.startswith(".claude"):
+        if (
+            item.name.startswith(".")
+            and not item.name.startswith(".claude")
+            and item.name not in _INCLUDED_DOTFILES
+        ):
             continue
+        # Do not read content through symlinks that escape the scan root.
+        if item.is_symlink():
+            try:
+                if not item.resolve().is_relative_to(skill_dir_resolved):
+                    continue
+            except (OSError, RuntimeError):
+                continue
         try:
             rel = item.relative_to(skill_dir)
             paths.append(str(rel))
@@ -128,7 +146,15 @@ def _build_component_metadata(
         suffix = full.suffix.lower()
         file_type = _infer_file_type(path)
         lines = _count_lines(full)
-        executable = suffix in _EXECUTABLE_EXTENSIONS
+        # Mark executable by extension, by exec permission bit, or by location under
+        # bin/ (covers extensionless plugin bin/ entrypoints such as bin/git).
+        norm_path = path.replace("\\", "/")
+        in_bin = norm_path.startswith("bin/") or "/bin/" in norm_path
+        try:
+            exec_bit = bool(full.stat().st_mode & stat.S_IXUSR)
+        except OSError:
+            exec_bit = False
+        executable = suffix in _EXECUTABLE_EXTENSIONS or exec_bit or in_bin
         if executable:
             has_executable = True
         try:
@@ -228,6 +254,7 @@ def build_context(state: SkillspectorState) -> dict[str, object]:
     file_cache = _read_file_cache(skill_dir, components)
     manifest = _parse_manifest(skill_dir)
     component_metadata, has_executable_scripts = _build_component_metadata(skill_dir, components)
+    plugin_model = parse_plugin(skill_dir, file_cache)
 
     return {
         "components": components,
@@ -238,4 +265,6 @@ def build_context(state: SkillspectorState) -> dict[str, object]:
         "model_config": MODEL_CONFIG,
         "component_metadata": component_metadata,
         "has_executable_scripts": has_executable_scripts,
+        "target_type": plugin_model.target_type,
+        "plugin_model": plugin_model.to_dict(),
     }

@@ -97,6 +97,60 @@ def test_build_context_missing_skill_path() -> None:
         build_context(state)
 
 
+def test_build_context_collects_mcp_and_lsp_dotfiles(tmp_path: Path) -> None:
+    """`.mcp.json` and `.lsp.json` must be collected despite the hidden-file rule."""
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "p", "version": "1.0.0"}', encoding="utf-8"
+    )
+    (tmp_path / ".mcp.json").write_text('{"mcpServers": {}}', encoding="utf-8")
+    (tmp_path / ".lsp.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".gitignore").write_text("*.pyc\n", encoding="utf-8")
+
+    result = build_context({"skill_path": str(tmp_path)})
+    components = result["components"]
+    assert ".mcp.json" in components
+    assert ".lsp.json" in components
+    assert ".claude-plugin/plugin.json" in components
+    # Unrelated dotfiles stay excluded (allowlist, not all-dotfiles).
+    assert ".gitignore" not in components
+
+
+def test_build_context_marks_bin_files_executable(tmp_path: Path) -> None:
+    """Extensionless files under bin/ are treated as executable components."""
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "p", "version": "1.0.0"}', encoding="utf-8"
+    )
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "tool").write_text("#!/bin/sh\necho hi\n", encoding="utf-8")
+
+    result = build_context({"skill_path": str(tmp_path)})
+    bin_meta = next((m for m in result["component_metadata"] if m.get("path") == "bin/tool"), None)
+    assert bin_meta is not None
+    assert bin_meta.get("executable") is True
+    assert result["has_executable_scripts"] is True
+
+
+def test_build_context_populates_plugin_model(tmp_path: Path) -> None:
+    """Plugin targets get target_type and a serialized plugin_model in state."""
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "p", "version": "1.0.0"}', encoding="utf-8"
+    )
+    result = build_context({"skill_path": str(tmp_path)})
+    assert result["target_type"] == "claude-plugin"
+    assert isinstance(result["plugin_model"], dict)
+    assert result["plugin_model"]["target_type"] == "claude-plugin"
+
+
+def test_build_context_skill_target_type(tmp_path: Path) -> None:
+    """A SKILL.md directory is classified as a standalone skill."""
+    _make_skill_spec_dir(tmp_path)
+    result = build_context({"skill_path": str(tmp_path)})
+    assert result["target_type"] == "standalone-skill"
+
+
 def test_build_context_empty_skill_path() -> None:
     """Empty skill_path raises instead of producing a clean empty scan."""
     state: SkillspectorState = {"skill_path": ""}
