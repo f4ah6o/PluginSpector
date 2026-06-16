@@ -1,69 +1,71 @@
 # PluginSpector
 
-**Security scanner for Claude Code plugins and AI agent skills.** Detect vulnerabilities, malicious patterns, and security risks before installing them.
+[English](README.en.md) | [日本語](README.md)
+
+**Claude Code プラグインおよび AI エージェントスキル向けのセキュリティスキャナー。** インストール前に脆弱性、悪意のあるパターン、セキュリティリスクを検出します。
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-## Overview
+## 概要
 
-Claude Code plugins and AI agent skills (also used by Codex CLI, Gemini CLI, etc.) execute with implicit trust and minimal vetting. Research on agent skills shows that **26.1% contain vulnerabilities** and **5.2% show likely malicious intent**.
+Claude Code プラグインや AI エージェントスキル(Codex CLI や Gemini CLI などでも利用される)は、暗黙の信頼のもとでほとんど検証されずに実行されます。エージェントスキルに関する調査では、**26.1% に脆弱性が含まれ**、**5.2% に悪意のある意図が疑われる**ことが報告されています。
 
-PluginSpector helps you answer: **"Is this plugin or skill safe to install?"** It parses Claude Code plugins as executable capability graphs (manifest, hooks, MCP/LSP config, agents, bin/, monitors) in addition to scanning standalone skills.
+PluginSpector は「このプラグイン/スキルはインストールしても安全か?」という問いに答えるためのツールです。単体のスキルのスキャンに加えて、Claude Code プラグインを実行可能なケーパビリティグラフ(マニフェスト、フック、MCP/LSP 設定、エージェント、bin/、モニター)として解析します。
 
-## Documentation
+## ドキュメント
 
-- **[Development guide](docs/DEVELOPMENT.md)** — Architecture, package layout, and how to extend the analyzer pipeline.
+- **[開発ガイド](docs/DEVELOPMENT.md)**(英語)— アーキテクチャ、パッケージ構成、アナライザーパイプラインの拡張方法。
 
-## Features
+## 特徴
 
-- **Multi-format input**: Scan Git repos, URLs, zip files, directories, or single files
-- **81 vulnerability patterns** across 24 categories: prompt injection, data exfiltration, privilege escalation, supply chain, excessive agency, output handling, system prompt leakage, memory poisoning, tool misuse, rogue agent, trigger abuse, dangerous code (AST), taint tracking, YARA signatures, MCP least privilege, MCP tool poisoning, and first-class **Claude Code plugin** analysis (manifest/structure, hooks, MCP/LSP config, agents, bin/, monitors, dependencies, and cross-component capability correlation)
-- **Two-stage analysis**: Fast static analysis + optional LLM semantic evaluation
-- **Live vulnerability lookups**: SC4 queries [OSV.dev](https://osv.dev) for real-time CVE data with automatic offline fallback
-- **Multiple output formats**: Terminal, JSON, Markdown, and SARIF reports
-- **Risk scoring**: 0-100 score with severity labels and clear recommendations
+- **多様な入力形式**: Git リポジトリ、URL、zip ファイル、ディレクトリ、単一ファイルをスキャン可能
+- **21 カテゴリ・81 種類の脆弱性パターン**: プロンプトインジェクション、データ漏洩、権限昇格、サプライチェーン、過剰なエージェンシー、出力処理、システムプロンプト漏洩、メモリポイズニング、ツール誤用、暴走エージェント、トリガー悪用、危険なコード(AST)、テイント解析、YARA シグネチャ、MCP 最小権限、MCP ツールポイズニング、そして **Claude Code プラグイン**専用解析(マニフェスト/構造、フック、MCP/LSP 設定、エージェント、bin/、モニター、依存関係、コンポーネント間のケーパビリティ相関)
+- **2 段階解析**: 高速な静的解析 + オプションの LLM によるセマンティック評価
+- **リアルタイム脆弱性検索**: SC4 が [OSV.dev](https://osv.dev) に問い合わせてリアルタイムの CVE 情報を取得し、オフライン時は自動でフォールバック
+- **複数の出力形式**: ターミナル、JSON、Markdown、SARIF レポート
+- **リスクスコアリング**: 0〜100 のスコアと深刻度ラベル、明確な推奨アクション
 
-## Quick Start
+## クイックスタート
 
-### Installation
+### インストール
 
-Create and activate a virtual environment first (all `make` targets assume the venv is active). Use **uv** or **pip**; the Makefile uses `uv` if available, otherwise `pip`.
+最初に仮想環境を作成して有効化してください(`make` の各ターゲットは仮想環境が有効化されていることを前提としています)。**uv** または **pip** を使用できます。Makefile は `uv` が利用可能であればそれを使用し、なければ `pip` を使用します。
 
 ```bash
-# Clone the repository
+# リポジトリをクローン
 git clone https://github.com/f4ah6o/PluginSpector.git
 cd PluginSpector
 
-# Create and activate virtual environment
+# 仮想環境を作成して有効化
 uv venv .venv && source .venv/bin/activate
-# or: python3 -m venv .venv && source .venv/bin/activate
+# または: python3 -m venv .venv && source .venv/bin/activate
 
-# Install for production use
+# 本番用にインストール
 make install
 
-# Or install with development dependencies
+# または開発用依存関係も含めてインストール
 make install-dev
 ```
 
-### Docker (no Python required)
+### Docker(Python 不要)
 
-Run PluginSpector without installing Python by building it locally from the included [Dockerfile](Dockerfile). The image is based on the Docker Official Python `3.12-slim-bookworm` image.
+付属の [Dockerfile](Dockerfile) からローカルでビルドすることで、Python をインストールせずに PluginSpector を実行できます。イメージは Docker 公式の Python `3.12-slim-bookworm` イメージをベースにしています。
 
-**Build the image:**
+**イメージのビルド:**
 
 ```bash
 make docker-build
-# or: docker build -t skillspector .
+# または: docker build -t skillspector .
 ```
 
-**Scan a local directory** by mounting your current directory into `/scan`, the container's working directory:
+**ローカルディレクトリのスキャン**: カレントディレクトリをコンテナの作業ディレクトリ `/scan` にマウントします。
 
 ```bash
 docker run --rm -v "$PWD:/scan" skillspector scan ./my-skill/ --no-llm
 ```
 
-**Scan with LLM analysis** by passing credentials with a local `.env` file:
+**LLM 解析を使う場合**: ローカルの `.env` ファイルで認証情報を渡します。
 
 ```bash
 cat > .env <<'EOF'
@@ -79,7 +81,7 @@ docker run --rm \
   skillspector scan ./my-skill/
 ```
 
-Or pass credentials directly from your shell environment:
+または、シェル環境から直接認証情報を渡すこともできます。
 
 ```bash
 docker run --rm \
@@ -89,7 +91,7 @@ docker run --rm \
   skillspector scan ./my-skill/
 ```
 
-**Write a report to the host filesystem** by writing to the mounted directory:
+**レポートをホストファイルシステムに書き出す**: マウントしたディレクトリに書き込みます。
 
 ```bash
 docker run --rm \
@@ -97,61 +99,59 @@ docker run --rm \
   skillspector scan ./my-skill/ --no-llm --format json --output report.json
 ```
 
-**Optional alias** for repeated static scans:
+**繰り返し静的スキャンを行う場合のエイリアス例:**
 
 ```bash
 alias skillspector-docker='docker run --rm -v "$PWD:/scan" skillspector'
 skillspector-docker scan ./my-skill/ --no-llm
 ```
 
-### Basic Usage
+### 基本的な使い方
 
 ```bash
-# Scan a local skill directory
+# ローカルのスキルディレクトリをスキャン
 skillspector scan ./my-skill/
 
-# Scan a single SKILL.md file
+# 単一の SKILL.md ファイルをスキャン
 skillspector scan ./SKILL.md
 
-# Scan a Git repository
+# Git リポジトリをスキャン
 skillspector scan https://github.com/user/my-skill
 
-# Scan a zip file
+# zip ファイルをスキャン
 skillspector scan ./my-skill.zip
 ```
 
-### Output Formats
+### 出力形式
 
 ```bash
-# Terminal output (default) - pretty formatted
+# ターミナル出力(デフォルト) - 整形された表示
 skillspector scan ./my-skill/
 
-# JSON output - machine readable
+# JSON 出力 - 機械可読
 skillspector scan ./my-skill/ --format json --output report.json
 
-# Markdown output - for documentation
+# Markdown 出力 - ドキュメント用
 skillspector scan ./my-skill/ --format markdown --output report.md
 
-# SARIF output - for CI/CD integration and IDE tooling
+# SARIF 出力 - CI/CD 連携や IDE ツール用
 skillspector scan ./my-skill/ --format sarif --output report.sarif
 ```
 
-### LLM Analysis
+### LLM 解析
 
-For the best results, configure an OpenAI-compatible LLM endpoint for
-semantic analysis. Pick a provider with `SKILLSPECTOR_PROVIDER`; each
-ships its own bundled default model. PluginSpector also works against
-local OpenAI-compatible servers (Ollama, vLLM, llama.cpp) and managed
-inference gateways.
+最良の結果を得るには、セマンティック解析用に OpenAI 互換の LLM エンドポイントを設定してください。`SKILLSPECTOR_PROVIDER` でプロバイダーを選択します。各プロバイダーは独自のデフォルトモデルを内蔵しています。PluginSpector はローカルの OpenAI 互換サーバー(Ollama、vLLM、llama.cpp)やマネージド推論ゲートウェイにも対応しています。
 
-| Provider (`SKILLSPECTOR_PROVIDER`) | Credential env var | Endpoint | Default model |
+| プロバイダー (`SKILLSPECTOR_PROVIDER`) | 認証情報の環境変数 | エンドポイント | デフォルトモデル |
 | ---------- | ---- | ---- | ---- |
-| `openai` | `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`) | api.openai.com (or any OpenAI-compatible URL) | `gpt-5.4` |
+| `openai` | `OPENAI_API_KEY`(任意で `OPENAI_BASE_URL`) | api.openai.com(または任意の OpenAI 互換 URL) | `gpt-5.4` |
 | `anthropic` | `ANTHROPIC_API_KEY` | api.anthropic.com | `claude-opus-4-6` |
 | `nv_build` | `NVIDIA_INFERENCE_KEY` | build.nvidia.com | `deepseek-ai/deepseek-v4-flash` |
 
+`nv_build` と `anthropic` では、`meta_analyzer` ノード(検出結果のフィルタリング・拡充パス)だけデフォルトより上位のモデル(それぞれ `deepseek-ai/deepseek-v4-pro`、`claude-sonnet-4-6`)に切り替わります。それ以外の LLM 呼び出しは各プロバイダーの基本デフォルトモデルを使用します。
+
 ```bash
-# Stock OpenAI
+# 標準の OpenAI
 export SKILLSPECTOR_PROVIDER=openai
 export OPENAI_API_KEY=sk-...
 skillspector scan ./my-skill/
@@ -166,242 +166,243 @@ export SKILLSPECTOR_PROVIDER=nv_build
 export NVIDIA_INFERENCE_KEY=nvapi-...
 skillspector scan ./my-skill/
 
-# Local Ollama or any OpenAI-compatible endpoint
+# ローカルの Ollama や任意の OpenAI 互換エンドポイント
 export SKILLSPECTOR_PROVIDER=openai
 export OPENAI_API_KEY=ollama
 export OPENAI_BASE_URL=http://localhost:11434/v1
 export SKILLSPECTOR_MODEL=llama3.1:8b
 skillspector scan ./my-skill/
 
-# Override the provider's default model
+# プロバイダーのデフォルトモデルを上書き
 export SKILLSPECTOR_MODEL=gpt-5.2
 skillspector scan ./my-skill/
 
-# Skip LLM analysis (faster, static analysis only)
+# LLM 解析をスキップ(高速、静的解析のみ)
 skillspector scan ./my-skill/ --no-llm
 ```
 
-## Vulnerability Patterns
+## 脆弱性パターン
 
-PluginSpector detects **81 vulnerability patterns** across 24 categories:
+PluginSpector は **21 カテゴリ・81 種類の脆弱性パターン**を検出します。
 
-### Prompt Injection (5 patterns)
+### プロンプトインジェクション (5 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| P1 | Instruction Override | HIGH | Commands to ignore safety constraints |
-| P2 | Hidden Instructions | HIGH | Malicious directives in comments/invisible text |
-| P3 | Exfiltration Commands | HIGH | Instructions to transmit context externally |
-| P4 | Behavior Manipulation | MEDIUM | Subtle instructions altering agent decisions |
-| P5 | Harmful Content | CRITICAL | Instructions that could cause physical harm |
+| P1 | 指示の上書き | HIGH | 安全制約を無視させる指示 |
+| P2 | 隠れた指示 | HIGH | コメントや不可視テキストに埋め込まれた悪意のある指示 |
+| P3 | 漏洩用コマンド | HIGH | コンテキストを外部に送信させる指示 |
+| P4 | 挙動操作 | MEDIUM | エージェントの判断を密かに変える指示 |
+| P5 | 有害コンテンツ | CRITICAL | 物理的な害を及ぼす可能性がある指示 |
 
-### Data Exfiltration (4 patterns)
+### データ漏洩 (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| E1 | External Transmission | MEDIUM | Sending data to external URLs |
-| E2 | Env Variable Harvesting | HIGH | Collecting API keys and secrets |
-| E3 | File System Enumeration | MEDIUM | Scanning directories for sensitive files |
-| E4 | Context Leakage | HIGH | Transmitting conversation context externally |
+| E1 | 外部送信 | MEDIUM | 外部 URL へのデータ送信 |
+| E2 | 環境変数収集 | HIGH | API キーやシークレットの収集 |
+| E3 | ファイルシステム探索 | MEDIUM | 機密ファイルを探すディレクトリスキャン |
+| E4 | コンテキスト漏洩 | HIGH | 会話コンテキストの外部送信 |
 
-### Privilege Escalation (3 patterns)
+### 権限昇格 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| PE1 | Excessive Permissions | LOW | Requesting access beyond stated functionality |
-| PE2 | Sudo/Root Execution | MEDIUM | Invoking elevated system privileges |
-| PE3 | Credential Access | HIGH | Reading SSH keys, tokens, passwords |
+| PE1 | 過剰な権限要求 | LOW | 機能に対して不必要に広いアクセス権限の要求 |
+| PE2 | sudo/root の実行 | MEDIUM | システム権限の昇格呼び出し |
+| PE3 | 認証情報アクセス | HIGH | SSH 鍵、トークン、パスワードの読み取り |
 
-### Supply Chain (6 patterns)
+### サプライチェーン (6 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| SC1 | Unpinned Dependencies | LOW | No version constraints on packages |
-| SC2 | External Script Fetching | HIGH | curl \| bash and remote code execution |
-| SC3 | Obfuscated Code | HIGH | Base64/hex encoded execution |
-| SC4 | Known Vulnerable Dependencies | HIGH | Dependencies with known CVEs (live OSV.dev lookup) |
-| SC5 | Abandoned Dependencies | MEDIUM | Unmaintained packages without security updates |
-| SC6 | Typosquatting | HIGH | Package names similar to popular packages |
+| SC1 | バージョン未固定の依存関係 | LOW | パッケージにバージョン制約がない |
+| SC2 | 外部スクリプトの取得実行 | HIGH | curl \| bash などのリモートコード実行 |
+| SC3 | コードの難読化 | HIGH | Base64/16 進エンコードされたコードの実行 |
+| SC4 | 既知の脆弱性を持つ依存関係 | HIGH | 既知の CVE を持つ依存関係(OSV.dev によるリアルタイム検索) |
+| SC5 | メンテナンス放棄された依存関係 | MEDIUM | セキュリティ更新のないメンテナンスされていないパッケージ |
+| SC6 | タイポスクワッティング | HIGH | 有名パッケージに似せたパッケージ名 |
 
-### Excessive Agency (4 patterns)
+### 過剰なエージェンシー (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| EA1 | Unrestricted Tool Access | HIGH | Unfettered tool access without constraints |
-| EA2 | Autonomous Decision Making | HIGH | High-impact decisions without human-in-the-loop |
-| EA3 | Scope Creep | MEDIUM | Capabilities extending beyond stated purpose |
-| EA4 | Unbounded Resource Access | MEDIUM | No rate limits or quotas on resource consumption |
+| EA1 | 無制限なツールアクセス | HIGH | 制約のない無制限なツールアクセス |
+| EA2 | 自律的な意思決定 | HIGH | 人間の確認なしに行われる影響度の高い判断 |
+| EA3 | スコープクリープ | MEDIUM | 明記された目的を超える機能 |
+| EA4 | 無制限なリソースアクセス | MEDIUM | リソース消費に対するレート制限・上限がない |
 
-### Output Handling (3 patterns)
+### 出力処理 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| OH1 | Unvalidated Output Injection | HIGH | Model output used without sanitization |
-| OH2 | Cross-Context Output | MEDIUM | Output flows across trust boundaries without validation |
-| OH3 | Unbounded Output | MEDIUM | No limits on output size or generation rate |
+| OH1 | 未検証の出力インジェクション | HIGH | サニタイズされずに使用されるモデル出力 |
+| OH2 | クロスコンテキスト出力 | MEDIUM | 検証なしに信頼境界を越えて流れる出力 |
+| OH3 | 無制限の出力 | MEDIUM | 出力サイズや生成レートに上限がない |
 
-### System Prompt Leakage (3 patterns)
+### システムプロンプト漏洩 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| P6 | Direct Leakage | HIGH | Instructions that expose system prompts or internal rules |
-| P7 | Indirect Extraction | MEDIUM | Extraction via rephrasing, translation, or side-channels |
-| P8 | Tool-Based Exfiltration | HIGH | System prompts exfiltrated via file writes or network requests |
+| P6 | 直接的な漏洩 | HIGH | システムプロンプトや内部ルールを露出させる指示 |
+| P7 | 間接的な抽出 | MEDIUM | 言い換え・翻訳・サイドチャネルによる抽出 |
+| P8 | ツール経由の漏洩 | HIGH | ファイル書き込みやネットワークリクエストによるシステムプロンプトの漏洩 |
 
-### Memory Poisoning (3 patterns)
+### メモリポイズニング (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| MP1 | Persistent Context Injection | HIGH | Content designed to persist across interactions |
-| MP2 | Context Window Stuffing | MEDIUM | Filler content displacing safety constraints |
-| MP3 | Memory Manipulation | HIGH | Tampering with agent memory or stored state |
+| MP1 | 永続的なコンテキスト注入 | HIGH | 複数回のやり取りに渡って残存することを意図したコンテンツ |
+| MP2 | コンテキストウィンドウの圧迫 | MEDIUM | 安全制約を押し出す無意味な埋め草コンテンツ |
+| MP3 | メモリ操作 | HIGH | エージェントのメモリや保存状態への改ざん |
 
-### Tool Misuse (3 patterns)
+### ツール誤用 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| TM1 | Tool Parameter Abuse | HIGH | Crafted parameters for unintended behavior (shell=True, --force) |
-| TM2 | Chaining Abuse | HIGH | Tool chains that bypass individual safety checks |
-| TM3 | Unsafe Defaults | MEDIUM | Overly permissive defaults (disabled TLS, no auth) |
+| TM1 | ツールパラメータの悪用 | HIGH | 意図しない動作を起こすパラメータの作り込み(shell=True、--force など) |
+| TM2 | チェイニングの悪用 | HIGH | 個別の安全チェックを回避するツールの連鎖 |
+| TM3 | 安全でないデフォルト値 | MEDIUM | 過度に許容的なデフォルト設定(TLS 無効化、認証なしなど) |
 
-### Rogue Agent (2 patterns)
+### 暴走エージェント (2 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| RA1 | Self-Modification | CRITICAL | Modifying own code or configuration at runtime |
-| RA2 | Session Persistence | HIGH | Unauthorized persistence via cron jobs or startup scripts |
+| RA1 | 自己改変 | CRITICAL | 実行時に自身のコードや設定を変更する |
+| RA2 | セッションの永続化 | HIGH | cron ジョブや起動スクリプトによる不正な永続化 |
 
-### Trigger Abuse (3 patterns)
+### トリガー悪用 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| TR1 | Overly Broad Trigger | MEDIUM | Trigger patterns matching common words |
-| TR2 | Shadow Command Trigger | HIGH | Triggers that shadow built-in commands or other skills |
-| TR3 | Keyword Baiting Trigger | MEDIUM | Generic triggers designed to maximize activation |
+| TR1 | 過度に広いトリガー | MEDIUM | よく使われる単語にマッチするトリガーパターン |
+| TR2 | コマンド乗っ取り型トリガー | HIGH | 組み込みコマンドや他のスキルを乗っ取るトリガー |
+| TR3 | キーワード釣り型トリガー | MEDIUM | 起動頻度の最大化を狙った汎用的なトリガー |
 
-### Behavioral AST (8 patterns)
+### ビヘイビア AST 解析 (8 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| AST1 | exec() Call | CRITICAL | Direct exec() enabling arbitrary code execution |
-| AST2 | eval() Call | HIGH | Direct eval() evaluating arbitrary expressions |
-| AST3 | Dynamic Import | HIGH | \_\_import\_\_() loading arbitrary modules at runtime |
-| AST4 | subprocess Call | HIGH | External command execution via subprocess |
-| AST5 | os.system / exec-family | HIGH | Shell commands via os module |
-| AST6 | compile() Call | MEDIUM | Code object creation from strings |
-| AST7 | Dynamic getattr() | MEDIUM | Arbitrary attribute access with non-literal names |
-| AST8 | Dangerous Execution Chain | CRITICAL | exec/eval combined with dynamic source (network, encoded data) |
+| AST1 | exec() 呼び出し | CRITICAL | 任意コード実行を可能にする直接の exec() |
+| AST2 | eval() 呼び出し | HIGH | 任意の式を評価する直接の eval() |
+| AST3 | 動的インポート | HIGH | 実行時に任意のモジュールを読み込む \_\_import\_\_() |
+| AST4 | subprocess 呼び出し | HIGH | subprocess による外部コマンド実行 |
+| AST5 | os.system / exec 系 | HIGH | os モジュール経由のシェルコマンド実行 |
+| AST6 | compile() 呼び出し | MEDIUM | 文字列からのコードオブジェクト生成 |
+| AST7 | 動的 getattr() | MEDIUM | リテラルでない属性名による任意の属性アクセス |
+| AST8 | 危険な実行チェーン | CRITICAL | exec/eval と動的なソース(ネットワーク、エンコードデータ)の組み合わせ |
 
-### Taint Tracking (5 patterns)
+### テイント解析 (5 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| TT1 | Direct Taint Flow | HIGH | Data flows directly from a source to a sink without sanitization |
-| TT2 | Variable-Mediated Taint Flow | MEDIUM | Data flows from source to sink through intermediate variables |
-| TT3 | Credential Exfiltration Chain | CRITICAL | Credentials (env vars, secrets) flow to network output sinks |
-| TT4 | File Read to Network Exfiltration | HIGH | File contents flow to network output sinks |
-| TT5 | External Input to Code Execution | CRITICAL | Network or user input flows to exec/eval/subprocess sinks |
+| TT1 | 直接的なテイントフロー | HIGH | サニタイズなしにソースからシンクへ直接流れるデータ |
+| TT2 | 変数経由のテイントフロー | MEDIUM | 中間変数を経由してソースからシンクへ流れるデータ |
+| TT3 | 認証情報漏洩チェーン | CRITICAL | 認証情報(環境変数、シークレット)がネットワーク出力シンクへ流れる |
+| TT4 | ファイル読み取りからの漏洩 | HIGH | ファイル内容がネットワーク出力シンクへ流れる |
+| TT5 | 外部入力からのコード実行 | CRITICAL | ネットワークやユーザー入力が exec/eval/subprocess シンクへ流れる |
 
-### YARA Signatures (4 patterns)
+### YARA シグネチャ (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| YR1 | Malware Match | CRITICAL | YARA rule match for known malware signatures |
-| YR2 | Webshell Match | CRITICAL | YARA rule match for webshell patterns |
-| YR3 | Cryptominer Match | HIGH | YARA rule match for crypto mining indicators |
-| YR4 | Hack Tool / Exploit Match | HIGH | YARA rule match for hack tools or exploit code |
+| YR1 | マルウェアの一致 | CRITICAL | 既知のマルウェアシグネチャに一致する YARA ルール |
+| YR2 | Web シェルの一致 | CRITICAL | Web シェルパターンに一致する YARA ルール |
+| YR3 | クリプトマイナーの一致 | HIGH | クリプトマイニングの兆候に一致する YARA ルール |
+| YR4 | ハックツール/エクスプロイトの一致 | HIGH | ハックツールやエクスプロイトコードに一致する YARA ルール |
 
-### MCP Least Privilege (4 patterns)
+### MCP 最小権限 (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| LP1 | Underdeclared Capability | HIGH | Code uses capabilities not listed in declared permissions |
-| LP2 | Wildcard Permission | MEDIUM | Permission list contains wildcards (\*, all, full, any) |
-| LP3 | Missing Permission Declaration | MEDIUM | No permissions field but code has detectable capabilities |
-| LP4 | Overdeclared Permission | LOW | Permission declared but no corresponding code capability found |
+| LP1 | 未宣言のケーパビリティ | HIGH | 宣言された権限に記載されていないケーパビリティをコードが使用 |
+| LP2 | ワイルドカード権限 | MEDIUM | 権限リストにワイルドカード(\*、all、full、any)が含まれる |
+| LP3 | 権限宣言の欠落 | MEDIUM | permissions フィールドがないのに検出可能なケーパビリティを持つコードがある |
+| LP4 | 過剰宣言された権限 | LOW | 権限が宣言されているが対応するコードのケーパビリティが見つからない |
 
-### MCP Tool Poisoning (4 patterns)
+### MCP ツールポイズニング (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| TP1 | Hidden Instructions | HIGH | Hidden directives in metadata (HTML comments, zero-width chars, base64, data URIs) |
-| TP2 | Unicode Deception | HIGH | Homoglyphs, RTL overrides, mixed-script identifiers in tool metadata |
-| TP3 | Parameter Description Injection | MEDIUM | Injection patterns in parameter definitions (overrides, system tokens, malicious defaults) |
-| TP4 | Description-Behavior Mismatch | MEDIUM | Declared tool description does not match actual code behavior (LLM-powered) |
+| TP1 | 隠れた指示 | HIGH | メタデータに隠された指示(HTML コメント、ゼロ幅文字、base64、データ URI) |
+| TP2 | Unicode による偽装 | HIGH | ツールメタデータ内のホモグリフ、RTL オーバーライド、混在スクリプト識別子 |
+| TP3 | パラメータ説明への注入 | MEDIUM | パラメータ定義内の注入パターン(上書き、システムトークン、悪意あるデフォルト値) |
+| TP4 | 説明と挙動の不一致 | MEDIUM | 宣言されたツールの説明が実際のコードの挙動と一致しない(LLM 解析による検出) |
 
-### Claude Plugin Structure (3 patterns)
+### Claude プラグイン構造 (3 パターン)
 
-When the scan target is a Claude Code plugin (detected via `.claude-plugin/plugin.json`), PluginSpector parses the plugin as a capability graph and applies the following plugin-aware rules.
+スキャン対象が Claude Code プラグイン(`.claude-plugin/plugin.json` で検出)の場合、PluginSpector はプラグインをケーパビリティグラフとして解析し、以下のプラグイン専用ルールを適用します。
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| CP001 | Invalid Plugin Manifest | MEDIUM | `plugin.json` is malformed, missing required fields, or has wrong field types |
-| CP002 | Component Path Escape | HIGH | A declared component path resolves outside the plugin root (path traversal) |
-| CP003 | Symlink Escape | HIGH | A symlink inside the plugin points to a target outside the plugin root |
+| CP001 | 無効なプラグインマニフェスト | MEDIUM | `plugin.json` が不正な形式、必須フィールドの欠落、または型が誤っている |
+| CP002 | コンポーネントパスの脱出 | HIGH | 宣言されたコンポーネントパスがプラグインルートの外を指す(パストラバーサル) |
+| CP003 | シンボリックリンクの脱出 | HIGH | プラグイン内のシンボリックリンクがプラグインルート外のターゲットを指す |
 
-### Claude Hooks (4 patterns)
+### Claude フック (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| HK001 | Hook Shell Execution | MEDIUM | A hook executes a shell command |
-| HK002 | Hook External HTTP | HIGH | A hook calls an external HTTP endpoint |
-| HK003 | Lifecycle Hook External Command | HIGH | An automatic lifecycle hook (e.g. SessionStart) executes an external command |
-| HK004 | Hook Download-and-Execute | CRITICAL | A hook downloads and executes remote code (e.g. `curl ... \| sh`) |
+| HK001 | フックによるシェル実行 | MEDIUM | フックがシェルコマンドを実行する |
+| HK002 | フックによる外部 HTTP 通信 | HIGH | フックが外部 HTTP エンドポイントを呼び出す |
+| HK003 | ライフサイクルフックによる外部コマンド | HIGH | 自動的なライフサイクルフック(SessionStart など)が外部コマンドを実行する |
+| HK004 | フックによるダウンロード即実行 | CRITICAL | フックがリモートコードをダウンロードして実行する(例: `curl ... \| sh`) |
 
-### Claude MCP/LSP Configuration (3 patterns)
+### Claude MCP/LSP 設定 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| MCP001 | Unpinned Runtime Package | HIGH | MCP server runs an unpinned package (e.g. `npx -y`, `uvx`) |
-| MCP002 | Embedded MCP Secret | CRITICAL | A secret (API key/token/password) is embedded directly in MCP config |
-| MCP003 | Insecure MCP Transport | HIGH | A remote MCP endpoint uses insecure `http://` transport |
+| MCP001 | バージョン未固定のランタイムパッケージ | HIGH | MCP サーバーがバージョン未固定のパッケージを実行する(例: `npx -y`、`uvx`) |
+| MCP002 | MCP 設定への埋め込みシークレット | CRITICAL | シークレット(API キー/トークン/パスワード)が MCP 設定に直接埋め込まれている |
+| MCP003 | 安全でない MCP トランスポート | HIGH | リモートの MCP エンドポイントが安全でない `http://` トランスポートを使用 |
 
-### Claude Components (4 patterns)
+### Claude コンポーネント (4 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| AG001 | Broad Agent Permissions | MEDIUM | An agent declares broad Bash or write permissions |
-| BIN001 | Bin Command Shadowing | HIGH | A `bin/` entry shadows a common command (git, node, python, …) |
-| MON001 | Persistent Background Monitor | MEDIUM | A monitor starts persistent background execution |
-| DEP001 | Unpinned Plugin Dependency | MEDIUM | A plugin dependency is not pinned to an immutable revision |
+| AG001 | 広範なエージェント権限 | MEDIUM | エージェントが広範な Bash や書き込み権限を宣言している |
+| BIN001 | bin コマンドのシャドーイング | HIGH | `bin/` 内のエントリが一般的なコマンド(git、node、python など)を上書きする |
+| MON001 | 永続的なバックグラウンドモニター | MEDIUM | モニターが永続的なバックグラウンド実行を開始する |
+| DEP001 | バージョン未固定のプラグイン依存関係 | MEDIUM | プラグインの依存関係が不変のリビジョンに固定されていない |
 
-### Capability Correlation (3 patterns)
+### ケーパビリティ相関 (3 パターン)
 
-| ID | Pattern | Severity | Description |
+| ID | パターン | 深刻度 | 説明 |
 |----|---------|----------|-------------|
-| CC001 | Secret Access + Network Egress | HIGH | A component both accesses secrets and performs network egress |
-| CC002 | Auto Activation + Process Execution | HIGH | An automatically-activated component executes a process |
-| CC003 | Background Execution + Network Access | HIGH | A background component has external network access |
+| CC001 | シークレットアクセス + ネットワーク送信 | HIGH | コンポーネントがシークレットへのアクセスとネットワーク送信を両方行う |
+| CC002 | 自動起動 + プロセス実行 | HIGH | 自動的に起動するコンポーネントがプロセスを実行する |
+| CC003 | バックグラウンド実行 + ネットワークアクセス | HIGH | バックグラウンドコンポーネントが外部ネットワークにアクセスする |
 
-All detected patterns are listed in the tables above.
+検出されるすべてのパターンは上記の表にまとめられています。
 
-## Risk Scoring
+## リスクスコアリング
 
-### Score Calculation
+### スコアの計算方法
 
-- **CRITICAL issues**: +50 points
-- **HIGH issues**: +25 points
-- **MEDIUM issues**: +10 points
-- **LOW issues**: +5 points
-- **Executable scripts**: 1.3x multiplier
+- **CRITICAL の問題**: +50 点
+- **HIGH の問題**: +25 点
+- **MEDIUM の問題**: +10 点
+- **LOW の問題**: +5 点
+- **実行可能なスクリプトがある場合**: 1.3 倍の乗数
 
-### Severity Levels
+### 深刻度レベル
 
-| Score | Severity | Recommendation |
+| スコア | 深刻度 | 推奨アクション |
 |-------|----------|----------------|
-| 0-20 | LOW | SAFE |
-| 21-50 | MEDIUM | CAUTION |
-| 51-80 | HIGH | DO NOT INSTALL |
-| 81-100 | CRITICAL | DO NOT INSTALL |
+| 0-20 | LOW | SAFE(安全) |
+| 21-50 | MEDIUM | CAUTION(注意) |
+| 51-80 | HIGH | DO NOT INSTALL(インストール非推奨) |
+| 81-100 | CRITICAL | DO NOT INSTALL(インストール非推奨) |
 
-## Example Output
+## 出力例
 
-### Terminal Output
+### ターミナル出力
 
 ```
- SkillSpector Security Report  v2.0.0
+ SkillSpector Security Report  v2.1.5
 
 Skill: suspicious-skill
+Target Type: standalone-skill
 Source: ./suspicious-skill/
 Scanned: 2026-01-29 10:30:00 UTC
 
@@ -419,137 +420,138 @@ Scanned: 2026-01-29 10:30:00 UTC
 
 Issues (2)
 
-  HIGH: Env Variable Harvesting (E2)
+  HIGH: E2 - Code accesses environment variables that may contain secrets...
     Location: scripts/sync.py:23
-    Finding: for key, val in os.environ.items():...
     Confidence: 94%
-    Explanation: This code collects environment variables containing
-    API keys and secrets, then sends them to an external server.
+    Remediation: Avoid reading sensitive env vars (API keys, tokens) unless...
 
-  HIGH: External Transmission (E1)
+  HIGH: E1 - Data is being sent to an external URL. This could be legitima...
     Location: scripts/sync.py:45
-    Finding: requests.post("https://api.skill.io/env"...
     Confidence: 89%
-    Explanation: Data is being sent to an external server. Combined
-    with env harvesting above, this indicates credential exfiltration.
+    Remediation: Verify the destination URL is trusted and necessary. Remo...
+
+Executable scripts: Yes
 ```
 
-## Configuration
+## 設定
 
-### Environment Variables
+### 環境変数
 
-| Variable | Description | Required |
+| 変数 | 説明 | 必須/任意 |
 |----------|-------------|----------|
-| `SKILLSPECTOR_PROVIDER` | Active LLM provider: `openai`, `anthropic`, or `nv_build`. Each provider has its own bundled `model_registry.yaml` and default model (see the LLM Analysis table above). Defaults to `nv_build`. | Optional |
-| `NVIDIA_INFERENCE_KEY` | Credential for the `nv_build` provider (build.nvidia.com). | Required for LLM analysis when `SKILLSPECTOR_PROVIDER=nv_build` |
-| `OPENAI_API_KEY` | Credential for the OpenAI provider (`SKILLSPECTOR_PROVIDER=openai`). Also serves as the tier-2 fallback in the credential waterfall when the active provider returns no credentials. | Required for LLM analysis when `SKILLSPECTOR_PROVIDER=openai` |
-| `OPENAI_BASE_URL` | Override the OpenAI endpoint (e.g. point at Ollama). | Optional |
-| `ANTHROPIC_API_KEY` | Credential for the Anthropic provider (`SKILLSPECTOR_PROVIDER=anthropic`). | Required for LLM analysis when `SKILLSPECTOR_PROVIDER=anthropic` |
-| `SKILLSPECTOR_MODEL` | Override the active provider's default model. See the LLM Analysis table for each provider's default. | Optional |
-| `SKILLSPECTOR_MODEL_REGISTRY` | Override the bundled per-provider YAML registry (`src/skillspector/providers/<provider>/model_registry.yaml`) with a custom path. | Optional |
-| `SKILLSPECTOR_LOG_LEVEL` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR` (default: `WARNING`). | Optional |
+| `SKILLSPECTOR_PROVIDER` | 有効な LLM プロバイダー: `openai`、`anthropic`、`nv_build` のいずれか。各プロバイダーは独自の `model_registry.yaml` とデフォルトモデルを持つ(上記の LLM 解析の表を参照)。未設定時は `nv_build`。 | 任意 |
+| `NVIDIA_INFERENCE_KEY` | `nv_build` プロバイダー(build.nvidia.com)の認証情報。 | `SKILLSPECTOR_PROVIDER=nv_build` で LLM 解析を行う場合は必須 |
+| `OPENAI_API_KEY` | OpenAI プロバイダー(`SKILLSPECTOR_PROVIDER=openai`)の認証情報。有効なプロバイダーが認証情報を返さない場合の第 2 階層フォールバックとしても使用される。 | `SKILLSPECTOR_PROVIDER=openai` で LLM 解析を行う場合は必須 |
+| `OPENAI_BASE_URL` | OpenAI エンドポイントを上書き(例: Ollama を指定)。 | 任意 |
+| `ANTHROPIC_API_KEY` | Anthropic プロバイダー(`SKILLSPECTOR_PROVIDER=anthropic`)の認証情報。 | `SKILLSPECTOR_PROVIDER=anthropic` で LLM 解析を行う場合は必須 |
+| `SKILLSPECTOR_MODEL` | 有効なプロバイダーのデフォルトモデルを上書き。各プロバイダーのデフォルトは LLM 解析の表を参照。 | 任意 |
+| `SKILLSPECTOR_MODEL_REGISTRY` | プロバイダーごとに内蔵された YAML レジストリ(`src/skillspector/providers/<provider>/model_registry.yaml`)を、任意のパスで上書き。 | 任意 |
+| `SKILLSPECTOR_LOG_LEVEL` | ログレベル: `DEBUG`、`INFO`、`WARNING`、`ERROR`(デフォルト: `WARNING`)。 | 任意 |
 
-### CLI Options
+### CLI オプション
 
 ```bash
 skillspector scan --help
 
 Options:
-  -f, --format [terminal|json|markdown|sarif]  Output format [default: terminal]
-  -o, --output PATH                            Output file path
-  --no-llm                                     Skip LLM analysis (static only)
-  -V, --verbose                                Show detailed progress
-  --help                                       Show this message and exit
+  -f, --format [terminal|json|markdown|sarif]  出力形式 [default: terminal]
+  -o, --output PATH                            出力ファイルパス
+  --no-llm                                     LLM 解析をスキップ(静的解析のみ)
+  --yara-rules-dir PATH                        組み込みルールに加えて読み込む追加 YARA ルール(.yar/.yara)のディレクトリ
+  -V, --verbose                                詳細な進行状況を表示
+  --help                                        このメッセージを表示して終了
+
+skillspector --version  # または -v: インストール済みバージョンを表示して終了
 ```
 
-## Development
+## 開発
 
-### Setup
+### セットアップ
 
-All `make` targets assume a virtual environment is already created and activated. The Makefile uses **uv** if available, else **pip**.
+すべての `make` ターゲットは、仮想環境がすでに作成・有効化されていることを前提としています。Makefile は **uv** が利用可能であればそれを使用し、なければ **pip** を使用します。
 
 ```bash
-# Clone, create venv, activate, install dev dependencies
+# クローン、venv 作成、有効化、開発用依存関係のインストール
 git clone https://github.com/f4ah6o/PluginSpector.git
 cd PluginSpector
 uv venv .venv && source .venv/bin/activate
-# or: python3 -m venv .venv && source .venv/bin/activate
+# または: python3 -m venv .venv && source .venv/bin/activate
 make install-dev
 
-# Run tests
+# テストを実行
 make test
 
-# Run tests with coverage
+# カバレッジ付きでテストを実行
 make test-cov
 
-# Run linting
+# リンターを実行
 make lint
 
-# Format code
+# コードを整形
 make format
 ```
 
-## How It Works
+## 仕組み
 
-PluginSpector uses a two-stage detection pipeline:
+PluginSpector は 2 段階の検出パイプラインを使用します。
 
-### Stage 1: Static Analysis
-- Fast regex-based pattern matching across 11 static analyzers
-- AST-based behavioral analysis detecting dangerous calls (exec, eval, subprocess, etc.)
-- Live vulnerability lookups via OSV.dev for known CVEs in dependencies
-- Scans all files in the skill
-- High recall (catches most issues)
-- Moderate precision (some false positives)
+### ステージ 1: 静的解析
+- 11 種類の静的アナライザーによる高速な正規表現ベースのパターンマッチング
+- 危険な呼び出し(exec、eval、subprocess など)を検出する AST ベースのビヘイビア解析
+- 依存関係の既知 CVE を OSV.dev でリアルタイム検索
+- スキル内のすべてのファイルをスキャン
+- 高い再現率(ほとんどの問題を検出)
+- 中程度の精度(誤検知が一部発生)
 
-### Stage 2: LLM Semantic Analysis (Optional)
-- Evaluates context and intent
-- Filters false positives
-- Provides human-readable explanations
-- Improves precision to ~87%
+### ステージ 2: LLM によるセマンティック解析(オプション)
+- コンテキストと意図を評価
+- 誤検知をフィルタリング
+- 人が読める形式の説明を提供
+- 精度を約 87% まで向上
 
-The LLM prompt includes anti-jailbreak protections to prevent malicious skills from manipulating the analysis.
+LLM プロンプトには、悪意のあるスキルが解析結果を操作できないようにするためのジェイルブレイク対策が含まれています。
 
-## Live Vulnerability Lookups (SC4)
+## リアルタイム脆弱性検索 (SC4)
 
-SC4 uses the [OSV.dev](https://osv.dev) API to check dependencies against the full Open Source Vulnerabilities database — covering tens of thousands of advisories across PyPI and npm.
+SC4 は [OSV.dev](https://osv.dev) API を使用して、PyPI と npm にまたがる数万件のアドバイザリを含む Open Source Vulnerabilities データベース全体と依存関係を照合します。
 
-- **No API key required** — OSV.dev is free and unauthenticated.
-- **Batch queries** — all dependencies are checked in a single HTTP call.
-- **Automatic fallback** — if OSV.dev is unreachable (air-gapped/offline), a small built-in fallback list is used.
-- **Caching** — results are cached in-memory for 1 hour to avoid redundant API calls during a session.
+- **API キー不要** — OSV.dev は無料かつ認証不要です。
+- **バッチクエリ** — すべての依存関係を 1 回の HTTP 呼び出しでチェックします。
+- **自動フォールバック** — OSV.dev に到達できない場合(エアギャップ環境/オフライン)、組み込みの小規模なフォールバックリストが使用されます。
+- **キャッシュ** — セッション中の重複した API 呼び出しを避けるため、結果はメモリ上に 1 時間キャッシュされます。
 
-The tool requires outbound HTTPS access to `api.osv.dev` for live vulnerability data. When that is not available, findings are limited to the static fallback list.
+このツールはリアルタイムの脆弱性データを取得するために `api.osv.dev` への外向き HTTPS アクセスを必要とします。アクセスできない場合、検出結果は静的フォールバックリストに限定されます。
 
-## Limitations
+## 制限事項
 
-- **Non-English content**: May miss patterns in other languages
-- **Image-based attacks**: Cannot analyze text in images
-- **Encrypted/binary code**: Cannot analyze compiled or encrypted content
-- **Runtime behavior**: Static analysis only, no dynamic execution
-- **Offline SC4**: Without network access to `api.osv.dev`, SC4 uses a small static fallback list
+- **英語以外のコンテンツ**: 他言語のパターンを見逃す可能性があります
+- **画像ベースの攻撃**: 画像内のテキストは解析できません
+- **暗号化/バイナリコード**: コンパイル済みまたは暗号化されたコンテンツは解析できません
+- **実行時の挙動**: 静的解析のみで、動的実行は行いません
+- **オフライン時の SC4**: `api.osv.dev` へのネットワークアクセスがない場合、SC4 は小規模な静的フォールバックリストを使用します
 
-## Research Background
+## 研究背景
 
-Based on research from "Agent Skills in the Wild: An Empirical Study of Security Vulnerabilities at Scale" (Liu et al., 2026):
+「Agent Skills in the Wild: An Empirical Study of Security Vulnerabilities at Scale」(Liu et al., 2026)の研究に基づいています。
 
-- **Dataset**: 42,447 skills from major marketplaces
-- **Vulnerable**: 26.1% contain at least one vulnerability
-- **High-severity**: 5.2% show likely malicious intent
-- **Key finding**: Skills with executable scripts are 2.12x more likely to be vulnerable
+- **データセット**: 主要マーケットプレイスの 42,447 件のスキル
+- **脆弱性あり**: 26.1% が少なくとも 1 件の脆弱性を含む
+- **高深刻度**: 5.2% に悪意のある意図が疑われる
+- **主要な発見**: 実行可能スクリプトを含むスキルは脆弱である可能性が 2.12 倍高い
 
-## Python API Integration
+## Python API との統合
 
 ```python
 from skillspector import graph
 
-# Invoke the LangGraph workflow
+# LangGraph ワークフローを呼び出す
 result = graph.invoke({
     "input_path": "/path/to/skill",
-    "output_format": "json",   # terminal, json, markdown, or sarif
-    "use_llm": True,           # False for static-only analysis
+    "output_format": "json",   # terminal, json, markdown, sarif のいずれか
+    "use_llm": True,           # 静的解析のみの場合は False
 })
 
-# Access results
+# 結果にアクセス
 print(f"Risk Score: {result['risk_score']}/100")
 print(f"Severity: {result['risk_severity']}")
 print(f"Recommendation: {result['risk_recommendation']}")
@@ -558,14 +560,14 @@ for finding in result["filtered_findings"]:
     print(f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}")
 ```
 
-## License
+## ライセンス
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
+Apache License 2.0 — 詳細は [LICENSE](LICENSE) を参照してください。
 
-## Contributing
+## コントリビューション
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests.
+コントリビューションを歓迎します!コントリビューションガイドラインをお読みのうえ、プルリクエストを送ってください。
 
-## Support
+## サポート
 
 - **Issues**: [GitHub Issues](https://github.com/f4ah6o/PluginSpector/issues)
