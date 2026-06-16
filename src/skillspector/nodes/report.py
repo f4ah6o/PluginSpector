@@ -147,6 +147,7 @@ def _format_terminal(
     risk_severity: str,
     risk_recommendation: str,
     has_executable_scripts: bool,
+    target_type: str | None = None,
 ) -> str:
     """Generate Rich terminal output and export as string."""
     console = Console(record=True, force_terminal=True, width=80, file=StringIO())
@@ -161,6 +162,7 @@ def _format_terminal(
         )
     )
     console.print(f"\n[bold]Skill:[/bold] {skill_name}")
+    console.print(f"[bold]Target Type:[/bold] {target_type or 'standalone-skill'}")
     console.print(f"[bold]Source:[/bold] {source}")
     console.print(f"[bold]Scanned:[/bold] {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
@@ -224,11 +226,14 @@ def _format_terminal(
     return console.export_text()
 
 
-def _build_metadata(has_executable_scripts: bool, use_llm: bool) -> dict[str, object]:
+def _build_metadata(
+    has_executable_scripts: bool, use_llm: bool, target_type: str | None = None
+) -> dict[str, object]:
     """Build the metadata section shared by all output formats."""
     llm_available, llm_error = is_llm_available()
     meta: dict[str, object] = {
         "has_executable_scripts": has_executable_scripts,
+        "target_type": target_type or "standalone-skill",
         "skillspector_version": skillspector_version,
         "llm_requested": use_llm,
         "llm_available": llm_available,
@@ -248,6 +253,7 @@ def _format_json(
     risk_recommendation: str,
     has_executable_scripts: bool,
     use_llm: bool = True,
+    target_type: str | None = None,
 ) -> str:
     """Generate JSON report string."""
     skill_name = (manifest.get("name") or "unknown") if manifest else "unknown"
@@ -255,6 +261,7 @@ def _format_json(
         "skill": {
             "name": skill_name,
             "source": skill_path or "",
+            "target_type": target_type or "standalone-skill",
             "scanned_at": datetime.now(UTC).isoformat(),
         },
         "risk_assessment": {
@@ -273,7 +280,7 @@ def _format_json(
             for c in component_metadata
         ],
         "issues": [f.to_dict() for f in findings],
-        "metadata": _build_metadata(has_executable_scripts, use_llm),
+        "metadata": _build_metadata(has_executable_scripts, use_llm, target_type),
     }
     return json.dumps(data, indent=2)
 
@@ -287,6 +294,7 @@ def _format_markdown(
     risk_severity: str,
     risk_recommendation: str,
     has_executable_scripts: bool,
+    target_type: str | None = None,
 ) -> str:
     """Generate Markdown report string."""
     lines: list[str] = []
@@ -295,6 +303,7 @@ def _format_markdown(
 
     lines.append("# SkillSpector Security Report\n")
     lines.append(f"**Skill:** {skill_name}  ")
+    lines.append(f"**Target Type:** {target_type or 'standalone-skill'}  ")
     lines.append(f"**Source:** `{source}`  ")
     lines.append(f"**Scanned:** {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}  ")
     lines.append("")
@@ -359,6 +368,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
     skill_path = state.get("skill_path")
     output_format = state.get("output_format") or "sarif"
     use_llm = state.get("use_llm", True)
+    target_type = state.get("target_type")
 
     risk_score, risk_severity, risk_recommendation = _compute_risk_score(
         findings, has_executable_scripts
@@ -375,6 +385,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
             risk_severity,
             risk_recommendation,
             has_executable_scripts,
+            target_type,
         )
     elif output_format == "json":
         report_body = _format_json(
@@ -387,6 +398,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
             risk_recommendation,
             has_executable_scripts,
             use_llm=use_llm,
+            target_type=target_type,
         )
     elif output_format == "markdown":
         report_body = _format_markdown(
@@ -398,6 +410,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
             risk_severity,
             risk_recommendation,
             has_executable_scripts,
+            target_type,
         )
     else:
         report_body = json.dumps(sarif_report, indent=2)

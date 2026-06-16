@@ -38,6 +38,15 @@ class PatternCategory(StrEnum):
     YARA_MATCH = "YARA Match"
     MCP_LEAST_PRIVILEGE = "MCP Least Privilege"
     MCP_TOOL_POISONING = "MCP Tool Poisoning"
+    # Claude Code plugin scanning (issue #1)
+    CLAUDE_PLUGIN = "Claude Plugin"
+    CLAUDE_HOOKS = "Claude Hooks"
+    CLAUDE_MCP = "Claude MCP/LSP"
+    CLAUDE_AGENT = "Claude Agent"
+    CLAUDE_BIN = "Claude Bin"
+    CLAUDE_MONITOR = "Claude Monitor"
+    CLAUDE_DEPENDENCY = "Claude Dependency"
+    CAPABILITY_CORRELATION = "Capability Correlation"
 
 
 # Pattern-specific explanations (why the finding is dangerous)
@@ -119,6 +128,31 @@ DEFAULT_EXPLANATIONS: dict[str, str] = {
     "TP2": "Unicode deception detected in skill identifiers or descriptions. Homoglyphs, RTL overrides, or invisible characters can make malicious content appear benign.",
     "TP3": "Instruction injection patterns found in parameter descriptions or default values. Parameter metadata is read by LLMs and can override intended behavior.",
     "TP4": "Skill description does not match actual code behavior. The declared purpose diverges from what the code actually does, indicating possible deception.",
+    # Claude Plugin structure (issue #1)
+    "CP001": "The plugin manifest (.claude-plugin/plugin.json) is invalid or inconsistent (malformed JSON, missing required fields, or wrong field types). A manifest that does not match the plugin's real structure undermines every downstream trust decision.",
+    "CP002": "A component path declared in the plugin manifest resolves outside the plugin root (path traversal). This lets a plugin reference or load files from arbitrary locations on the host.",
+    "CP003": "A symlink inside the plugin points to a target outside the plugin root. Escaping symlinks can read host secrets or smuggle external files into the plugin's effective contents.",
+    # Claude Hooks
+    "HK001": "A hook executes a shell command. Hooks run automatically during the agent lifecycle, so any shell execution they perform happens without an explicit user action.",
+    "HK002": "A hook contacts an external HTTP endpoint. Automatic outbound network access from a hook can exfiltrate data or pull remote instructions.",
+    "HK003": "An automatic lifecycle hook (e.g. SessionStart) executes an external command. Lifecycle hooks fire without user intent, so external execution here runs silently on every session/prompt.",
+    "HK004": "A hook downloads and executes remote code (e.g. `curl ... | sh`). This bypasses code review entirely and runs attacker-controlled code automatically.",
+    # Claude MCP / LSP configuration
+    "MCP001": "An MCP server runs an unpinned runtime package (e.g. `npx -y <pkg>` or `uvx <pkg>` without a version). The executed code can change at any time, enabling silent supply-chain compromise.",
+    "MCP002": "A secret (API key, token, password) is embedded directly in the MCP configuration. Hard-coded credentials leak through the repository and grant anyone with the files live access.",
+    "MCP003": "A remote MCP endpoint uses insecure transport (http://). Traffic, including tool inputs/outputs and credentials, is sent in cleartext and can be intercepted or tampered with.",
+    # Claude Agent
+    "AG001": "An agent declares broad Bash or write permissions. A subagent with unrestricted command execution or filesystem writes can perform arbitrary, high-impact actions.",
+    # Claude bin/
+    "BIN001": "A file in the plugin's bin/ shadows a common command (e.g. git, node, python). If bin/ is placed on PATH, the plugin's binary silently replaces the trusted system command.",
+    # Claude Monitors
+    "MON001": "A monitor starts persistent background execution. Long-running background processes can maintain unauthorized persistence and operate outside the user's direct attention.",
+    # Claude Dependencies
+    "DEP001": "A plugin dependency is not pinned to an immutable revision (uses a mutable tag/branch/range or no version). The resolved code can change underneath the user, enabling supply-chain drift.",
+    # Capability correlation
+    "CC001": "A component both accesses secrets and performs network egress. The combination is a classic credential-exfiltration path even when each capability alone looks benign.",
+    "CC002": "An automatically-activated component executes a process. Automatic activation plus process execution means attacker code can run without any user action.",
+    "CC003": "A background component has external network access. Persistent background execution combined with outbound network is a hallmark of beaconing/C2 behavior.",
 }
 
 # Rule ID -> category (for report output)
@@ -182,6 +216,24 @@ RULE_ID_TO_CATEGORY: dict[str, str] = {
     "TP2": PatternCategory.MCP_TOOL_POISONING.value,
     "TP3": PatternCategory.MCP_TOOL_POISONING.value,
     "TP4": PatternCategory.MCP_TOOL_POISONING.value,
+    # Claude Code plugin scanning (issue #1)
+    "CP001": PatternCategory.CLAUDE_PLUGIN.value,
+    "CP002": PatternCategory.CLAUDE_PLUGIN.value,
+    "CP003": PatternCategory.CLAUDE_PLUGIN.value,
+    "HK001": PatternCategory.CLAUDE_HOOKS.value,
+    "HK002": PatternCategory.CLAUDE_HOOKS.value,
+    "HK003": PatternCategory.CLAUDE_HOOKS.value,
+    "HK004": PatternCategory.CLAUDE_HOOKS.value,
+    "MCP001": PatternCategory.CLAUDE_MCP.value,
+    "MCP002": PatternCategory.CLAUDE_MCP.value,
+    "MCP003": PatternCategory.CLAUDE_MCP.value,
+    "AG001": PatternCategory.CLAUDE_AGENT.value,
+    "BIN001": PatternCategory.CLAUDE_BIN.value,
+    "MON001": PatternCategory.CLAUDE_MONITOR.value,
+    "DEP001": PatternCategory.CLAUDE_DEPENDENCY.value,
+    "CC001": PatternCategory.CAPABILITY_CORRELATION.value,
+    "CC002": PatternCategory.CAPABILITY_CORRELATION.value,
+    "CC003": PatternCategory.CAPABILITY_CORRELATION.value,
 }
 
 # Rule ID -> pattern display name (for report output)
@@ -245,6 +297,24 @@ PATTERN_NAMES: dict[str, str] = {
     "TP2": "Unicode Deception",
     "TP3": "Parameter Description Injection",
     "TP4": "Description-Behavior Mismatch",
+    # Claude Code plugin scanning (issue #1)
+    "CP001": "Invalid Plugin Manifest",
+    "CP002": "Component Path Escape",
+    "CP003": "Symlink Escape",
+    "HK001": "Hook Shell Execution",
+    "HK002": "Hook External HTTP",
+    "HK003": "Lifecycle Hook External Command",
+    "HK004": "Hook Download-and-Execute",
+    "MCP001": "Unpinned Runtime Package",
+    "MCP002": "Embedded MCP Secret",
+    "MCP003": "Insecure MCP Transport",
+    "AG001": "Broad Agent Permissions",
+    "BIN001": "Bin Command Shadowing",
+    "MON001": "Persistent Background Monitor",
+    "DEP001": "Unpinned Plugin Dependency",
+    "CC001": "Secret Access + Network Egress",
+    "CC002": "Auto Activation + Process Execution",
+    "CC003": "Background Execution + Network Access",
 }
 
 # Pattern-specific remediations (how to fix the issue)
@@ -326,6 +396,24 @@ DEFAULT_REMEDIATIONS: dict[str, str] = {
     "TP2": "Replace non-ASCII characters in identifiers with ASCII equivalents. Remove RTL override and invisible formatting characters.",
     "TP3": "Remove injection patterns, system tokens, and suspicious content from parameter descriptions and default values.",
     "TP4": "Update the skill description to accurately reflect all capabilities, or remove undeclared functionality.",
+    # Claude Plugin structure (issue #1)
+    "CP001": "Fix .claude-plugin/plugin.json: ensure it is valid JSON, includes a non-empty 'name', a valid 'version', and that declared component fields use the correct types.",
+    "CP002": "Remove the path-traversal component reference. Declare component paths relative to and within the plugin root; never use '../' to reach outside it.",
+    "CP003": "Remove the escaping symlink or repoint it inside the plugin root. Plugins must not symlink to host files outside their own directory.",
+    "HK001": "Review the hook command. Avoid invoking shells from hooks; prefer declarative configuration or a vetted, in-repo script with no side effects.",
+    "HK002": "Remove outbound network calls from hooks, or restrict them to explicitly documented, user-consented endpoints over HTTPS.",
+    "HK003": "Do not run external commands from automatic lifecycle hooks. Move any external interaction behind an explicit, user-invoked command.",
+    "HK004": "Never pipe downloaded content into a shell. Vendor the dependency, pin it, and verify checksums before execution.",
+    "MCP001": "Pin the MCP server's package to an exact version (e.g. `npx pkg@1.2.3`, `uvx pkg==1.2.3`) so the executed code cannot change silently.",
+    "MCP002": "Remove the hard-coded secret. Reference credentials via environment variables (e.g. `${API_KEY}`) resolved at runtime, and rotate any leaked secret.",
+    "MCP003": "Use https:// for remote MCP endpoints. Reserve http:// only for trusted localhost development, never for remote hosts.",
+    "AG001": "Scope the agent's tools to the minimum required. Avoid granting broad Bash execution or unrestricted Write/Edit; use an explicit allowlist.",
+    "BIN001": "Rename the bin/ entry so it does not collide with a common system command, and ensure bin/ does not shadow trusted executables on PATH.",
+    "MON001": "Remove or gate the persistent background process. Long-running monitors should require explicit user opt-in and be clearly documented.",
+    "DEP001": "Pin the dependency to an immutable revision (exact version or commit SHA) instead of a mutable tag, branch, range, or 'latest'.",
+    "CC001": "Separate secret access from network egress, or validate and minimize what is sent. Never transmit credentials or environment values to external endpoints.",
+    "CC002": "Remove automatic process execution, or require explicit user confirmation before an auto-activated component runs any command.",
+    "CC003": "Remove background network access, or restrict the background process to documented, user-consented endpoints with auditing.",
 }
 
 

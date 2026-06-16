@@ -20,7 +20,7 @@ from __future__ import annotations
 from skillspector.nodes.analyzers import ANALYZER_NODE_IDS, ANALYZER_NODES
 
 # Expected analyzer node IDs per SADD spec workflow reference table.
-# Order: static (12), behavioral (2), mcp (3), semantic (3).
+# Order: static (12), behavioral (2), mcp (3), semantic (3), claude plugin (5).
 EXPECTED_ANALYZER_NODE_IDS: list[str] = [
     "static_patterns_prompt_injection",
     "static_patterns_data_exfiltration",
@@ -42,6 +42,11 @@ EXPECTED_ANALYZER_NODE_IDS: list[str] = [
     "semantic_security_discovery",
     "semantic_developer_intent",
     "semantic_quality_policy",
+    "claude_plugin_structure",
+    "claude_hooks",
+    "claude_mcp_lsp",
+    "claude_components",
+    "claude_capability_correlation",
 ]
 
 

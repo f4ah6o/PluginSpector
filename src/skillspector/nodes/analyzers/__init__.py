@@ -21,6 +21,15 @@ from skillspector.nodes.analyzers.behavioral_ast import node as behavioral_ast_n
 from skillspector.nodes.analyzers.behavioral_taint_tracking import (
     node as behavioral_taint_tracking_node,
 )
+from skillspector.nodes.analyzers.claude_capability_correlation import (
+    node as claude_capability_correlation_node,
+)
+from skillspector.nodes.analyzers.claude_components import node as claude_components_node
+from skillspector.nodes.analyzers.claude_hooks import node as claude_hooks_node
+from skillspector.nodes.analyzers.claude_mcp_lsp import node as claude_mcp_lsp_node
+from skillspector.nodes.analyzers.claude_plugin_structure import (
+    node as claude_plugin_structure_node,
+)
 from skillspector.nodes.analyzers.mcp_least_privilege import node as mcp_least_privilege_node
 from skillspector.nodes.analyzers.mcp_rug_pull import node as mcp_rug_pull_node
 from skillspector.nodes.analyzers.mcp_tool_poisoning import node as mcp_tool_poisoning_node
@@ -89,6 +98,11 @@ ANALYZER_NODE_IDS: list[str] = [
     "semantic_security_discovery",
     "semantic_developer_intent",
     "semantic_quality_policy",
+    "claude_plugin_structure",
+    "claude_hooks",
+    "claude_mcp_lsp",
+    "claude_components",
+    "claude_capability_correlation",
 ]
 
 ANALYZER_NODES = {
@@ -112,6 +126,11 @@ ANALYZER_NODES = {
     "semantic_security_discovery": semantic_security_discovery_node,
     "semantic_developer_intent": semantic_developer_intent_node,
     "semantic_quality_policy": semantic_quality_policy_node,
+    "claude_plugin_structure": claude_plugin_structure_node,
+    "claude_hooks": claude_hooks_node,
+    "claude_mcp_lsp": claude_mcp_lsp_node,
+    "claude_components": claude_components_node,
+    "claude_capability_correlation": claude_capability_correlation_node,
 }
 
 __all__ = ["ANALYZER_NODE_IDS", "ANALYZER_NODES"]
