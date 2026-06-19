@@ -398,9 +398,8 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
     metadata_text = _format_metadata(manifest)
     files_with_findings = sorted({f.file for f in findings})
 
-    analyzer = LLMMetaAnalyzer(model=model)
-
     try:
+        analyzer = LLMMetaAnalyzer(model=model)
         batches = analyzer.get_batches(files_with_findings, file_cache, findings)
         logger.debug(
             "Meta-analyzer: %d files -> %d batches (model=%s)",
@@ -426,8 +425,6 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
             "llm_files_analyzed": len(files_with_findings),
             "llm_batches_analyzed": len(batches),
         }
-    except ValueError:
-        raise
     except Exception as e:
         error_msg = f"{type(e).__name__}: {e}"
         logger.warning("LLM call failed, using fallback: %s", error_msg)
