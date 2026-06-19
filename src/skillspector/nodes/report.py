@@ -34,6 +34,7 @@ from skillspector import __version__ as skillspector_version
 from skillspector.llm_utils import is_llm_available
 from skillspector.logging_config import get_logger
 from skillspector.models import Finding
+from skillspector.nodes.analyzers import ANALYZER_METADATA, ANALYZER_NODE_IDS
 from skillspector.sarif_models import (
     SARIF_SCHEMA_URI,
     SarifArtifactLocation,
@@ -279,6 +280,20 @@ def _build_metadata(
         meta["skipped_files"] = skipped_files[:50]
     else:
         meta["partial_scan"] = False
+
+    # Analyzer readiness summary
+    stub_analyzers = [
+        aid
+        for aid in ANALYZER_NODE_IDS
+        if ANALYZER_METADATA.get(aid, {}).get("status") == "stub"
+    ]
+    if stub_analyzers:
+        meta["stub_analyzers"] = stub_analyzers
+        meta["stub_analyzers_note"] = (
+            "These analyzers are registered but return no findings. "
+            "A clean report does not guarantee absence of issues in their categories."
+        )
+
     return meta
 
 

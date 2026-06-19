@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Analyzer node registry for Skillspector v2 stub workflow."""
+"""Analyzer node registry for PluginSpector."""
 
 from __future__ import annotations
 
@@ -133,4 +133,181 @@ ANALYZER_NODES = {
     "claude_capability_correlation": claude_capability_correlation_node,
 }
 
-__all__ = ["ANALYZER_NODE_IDS", "ANALYZER_NODES"]
+# ---------------------------------------------------------------------------
+# Analyzer readiness metadata
+# ---------------------------------------------------------------------------
+# status values:
+#   "production" — fully implemented, golden fixtures exist
+#   "beta"       — implemented but coverage or edge cases are incomplete
+#   "stub"       — not yet implemented; returns no findings
+#
+# requires_network: True if the analyzer makes external HTTP calls
+# requires_llm:     True if the analyzer calls an LLM (use_llm must be True)
+
+ANALYZER_METADATA: dict[str, dict[str, object]] = {
+    # Static pattern analyzers — regex/heuristic, no external dependencies
+    "static_patterns_prompt_injection": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["P1", "P2", "P3", "P4"],
+    },
+    "static_patterns_data_exfiltration": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["E1", "E2", "E3", "E4"],
+    },
+    "static_patterns_privilege_escalation": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["PE1", "PE2", "PE3"],
+    },
+    "static_patterns_supply_chain": {
+        "status": "production",
+        "requires_network": True,  # OSV.dev lookups for SC4
+        "requires_llm": False,
+        "rule_ids": ["SC1", "SC2", "SC3", "SC4", "SC5", "SC6"],
+    },
+    "static_patterns_harmful_content": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["HC1", "HC2", "HC3"],
+    },
+    "static_patterns_excessive_agency": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["EA1", "EA2", "EA3", "EA4"],
+    },
+    "static_patterns_output_handling": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["OH1", "OH2", "OH3"],
+    },
+    "static_patterns_system_prompt_leakage": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["P6", "P7", "P8"],
+    },
+    "static_patterns_memory_poisoning": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["MP1", "MP2", "MP3"],
+    },
+    "static_patterns_tool_misuse": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["TM1", "TM2", "TM3"],
+    },
+    "static_patterns_rogue_agent": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["RA1", "RA2"],
+    },
+    # Signature-based
+    "static_yara": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["YARA"],
+        "notes": "YARA engine available; built-in rule coverage is limited",
+    },
+    # Behavioral analyzers
+    "behavioral_ast": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["BA1", "BA2"],
+    },
+    "behavioral_taint_tracking": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["BT1", "BT2"],
+        "notes": "Taint tracking implemented for Python; coverage of other languages is limited",
+    },
+    # MCP analyzers
+    "mcp_least_privilege": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["LP1", "LP2", "LP3"],
+    },
+    "mcp_tool_poisoning": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": True,  # TP4 uses LLM when use_llm=True
+        "rule_ids": ["TP1", "TP2", "TP3", "TP4"],
+    },
+    "mcp_rug_pull": {
+        "status": "stub",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["RP1", "RP2", "RP3"],
+        "notes": "Requires previous manifest for diff; not yet implemented",
+    },
+    # Semantic (LLM-based) analyzers
+    "semantic_security_discovery": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": True,
+        "rule_ids": ["SD1"],
+        "notes": "LLM-based novel finding discovery; skipped when use_llm=False",
+    },
+    "semantic_developer_intent": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": True,
+        "rule_ids": ["DI1"],
+        "notes": "LLM-based intent classification; skipped when use_llm=False",
+    },
+    "semantic_quality_policy": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": True,
+        "rule_ids": ["QP1"],
+        "notes": "LLM-based policy check; skipped when use_llm=False",
+    },
+    # Claude plugin analyzers
+    "claude_plugin_structure": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["CP001", "CP002", "CP003", "CP004", "CP005"],
+    },
+    "claude_hooks": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["CH1", "CH2", "CH3"],
+    },
+    "claude_mcp_lsp": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["CML1", "CML2"],
+    },
+    "claude_components": {
+        "status": "production",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["CC1", "CC2"],
+    },
+    "claude_capability_correlation": {
+        "status": "beta",
+        "requires_network": False,
+        "requires_llm": False,
+        "rule_ids": ["CCC1", "CCC2"],
+        "notes": "Cross-component correlation; heuristic coverage is incomplete",
+    },
+}
+
+__all__ = ["ANALYZER_NODE_IDS", "ANALYZER_NODES", "ANALYZER_METADATA"]
