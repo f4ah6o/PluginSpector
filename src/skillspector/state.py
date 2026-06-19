@@ -71,6 +71,16 @@ class SkillspectorState(TypedDict, total=False):
     # and the semantic_* analyzers) return immediately without calling the LLM.
     # Each such node checks use_llm itself; there is no graph-level routing.
     use_llm: bool
+    # Fail closed when LLM is requested but unavailable/failing (--strict-llm)
+    strict_llm: bool
+
+    # LLM execution status set by meta_analyzer (for reporting and CI)
+    llm_used: bool
+    llm_failed: bool
+    llm_fallback_used: bool
+    llm_error: str | None
+    llm_files_analyzed: int
+    llm_batches_analyzed: int
 
     # Risk: report node sets these from risk_score
     risk_severity: str
@@ -89,7 +99,13 @@ class AnalyzerNodeResponse(TypedDict):
     findings: list[Finding]
 
 
-class MetaAnalyzerResponse(TypedDict):
+class MetaAnalyzerResponse(TypedDict, total=False):
     """Strict meta-analyzer update payload for graph state."""
 
     filtered_findings: list[Finding]
+    llm_used: bool
+    llm_failed: bool
+    llm_fallback_used: bool
+    llm_error: str | None
+    llm_files_analyzed: int
+    llm_batches_analyzed: int

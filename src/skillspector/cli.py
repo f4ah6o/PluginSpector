@@ -91,12 +91,14 @@ def _scan_state(
     format: FormatChoice,
     no_llm: bool,
     yara_rules_dir: str | None = None,
+    strict_llm: bool = False,
 ) -> dict[str, object]:
     """Build initial graph state from scan CLI args."""
     state: dict[str, object] = {
         "input_path": input_path,
         "output_format": format.value,
         "use_llm": not no_llm,
+        "strict_llm": strict_llm,
     }
     if yara_rules_dir is not None:
         state["yara_rules_dir"] = yara_rules_dir
@@ -164,6 +166,14 @@ def scan(
             help="Skip LLM analysis (faster, less accurate). Uses static analysis only.",
         ),
     ] = False,
+    strict_llm: Annotated[
+        bool,
+        typer.Option(
+            "--strict-llm",
+            help="Fail with exit code 2 if LLM analysis was requested but failed or is unavailable. "
+            "Useful for CI pipelines that require semantic analysis.",
+        ),
+    ] = False,
     yara_rules_dir: Annotated[
         Path | None,
         typer.Option(
@@ -208,7 +218,7 @@ def scan(
     result = None
     try:
         yara_dir = str(yara_rules_dir.resolve()) if yara_rules_dir else None
-        state = _scan_state(input_path, format, no_llm, yara_rules_dir=yara_dir)
+        state = _scan_state(input_path, format, no_llm, yara_rules_dir=yara_dir, strict_llm=strict_llm)
         if verbose:
             set_level("DEBUG")
             console.print("[dim]Running scan...[/dim]")

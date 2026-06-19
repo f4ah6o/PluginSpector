@@ -148,6 +148,8 @@ def _format_terminal(
     risk_recommendation: str,
     has_executable_scripts: bool,
     target_type: str | None = None,
+    llm_status: dict[str, object] | None = None,
+    skipped_files: list[str] | None = None,
 ) -> str:
     """Generate Rich terminal output and export as string."""
     console = Console(record=True, force_terminal=True, width=80, file=StringIO())
@@ -223,6 +225,30 @@ def _format_terminal(
         console.print("\n[green]No security issues detected.[/green]\n")
 
     console.print(f"[dim]Executable scripts: {'Yes' if has_executable_scripts else 'No'}[/dim]")
+
+    # LLM status warnings
+    if llm_status:
+        if llm_status.get("llm_fallback_used"):
+            console.print(
+                "\n[yellow]Warning:[/yellow] LLM analysis was requested but failed — "
+                "results are static analysis only. Use [bold]--no-llm[/bold] to suppress "
+                "this warning, or check your API credentials."
+            )
+            if llm_status.get("llm_error"):
+                console.print(f"[dim]LLM error: {llm_status['llm_error']}[/dim]")
+        elif llm_status.get("llm_used"):
+            console.print(
+                f"\n[dim]LLM analysis: {llm_status.get('llm_files_analyzed', 0)} file(s) "
+                f"in {llm_status.get('llm_batches_analyzed', 0)} batch(es)[/dim]"
+            )
+
+    # Partial scan warning
+    if skipped_files:
+        console.print(
+            f"\n[yellow]Warning:[/yellow] Partial scan — "
+            f"{len(skipped_files)} file(s) were skipped due to size/depth limits."
+        )
+
     return console.export_text()
 
 
@@ -231,9 +257,10 @@ def _build_metadata(
     use_llm: bool,
     target_type: str | None = None,
     skipped_files: list[str] | None = None,
+    llm_status: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Build the metadata section shared by all output formats."""
-    llm_available, llm_error = is_llm_available()
+    llm_available, llm_avail_error = is_llm_available()
     meta: dict[str, object] = {
         "has_executable_scripts": has_executable_scripts,
         "target_type": target_type or "standalone-skill",
@@ -242,7 +269,10 @@ def _build_metadata(
         "llm_available": llm_available,
     }
     if use_llm and not llm_available:
-        meta["llm_error"] = llm_error
+        meta["llm_error"] = llm_avail_error
+    # Merge runtime LLM execution status from meta_analyzer node
+    if llm_status:
+        meta.update(llm_status)
     if skipped_files:
         meta["partial_scan"] = True
         meta["skipped_files_count"] = len(skipped_files)
@@ -264,6 +294,7 @@ def _format_json(
     use_llm: bool = True,
     target_type: str | None = None,
     skipped_files: list[str] | None = None,
+    llm_status: dict[str, object] | None = None,
 ) -> str:
     """Generate JSON report string."""
     skill_name = (manifest.get("name") or "unknown") if manifest else "unknown"
@@ -290,7 +321,9 @@ def _format_json(
             for c in component_metadata
         ],
         "issues": [f.to_dict() for f in findings],
-        "metadata": _build_metadata(has_executable_scripts, use_llm, target_type, skipped_files),
+        "metadata": _build_metadata(
+            has_executable_scripts, use_llm, target_type, skipped_files, llm_status
+        ),
     }
     return json.dumps(data, indent=2)
 
@@ -380,6 +413,18 @@ def report(state: SkillspectorState) -> dict[str, object]:
     use_llm = state.get("use_llm", True)
     target_type = state.get("target_type")
     skipped_files = state.get("skipped_files") or []
+    llm_status: dict[str, object] = {
+        k: state[k]  # type: ignore[literal-required]
+        for k in (
+            "llm_used",
+            "llm_failed",
+            "llm_fallback_used",
+            "llm_error",
+            "llm_files_analyzed",
+            "llm_batches_analyzed",
+        )
+        if k in state
+    }
 
     risk_score, risk_severity, risk_recommendation = _compute_risk_score(
         findings, has_executable_scripts
@@ -397,6 +442,8 @@ def report(state: SkillspectorState) -> dict[str, object]:
             risk_recommendation,
             has_executable_scripts,
             target_type,
+            llm_status=llm_status,
+            skipped_files=skipped_files,
         )
     elif output_format == "json":
         report_body = _format_json(
@@ -411,6 +458,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
             use_llm=use_llm,
             target_type=target_type,
             skipped_files=skipped_files,
+            llm_status=llm_status,
         )
     elif output_format == "markdown":
         report_body = _format_markdown(

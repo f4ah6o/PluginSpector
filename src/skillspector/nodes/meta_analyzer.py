@@ -363,19 +363,37 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
     ``(file, rule_id)`` so enrichment is precise.
 
     Falls back to default remediations when ``use_llm`` is *False* or when
-    an LLM call fails.
+    an LLM call fails.  Sets ``llm_*`` status fields so callers and reports
+    can distinguish "LLM ran" from "LLM fell back silently".
     """
     findings: list[Finding] = state.get("findings", [])
     if not findings:
-        return {"filtered_findings": []}
+        return {
+            "filtered_findings": [],
+            "llm_used": False,
+            "llm_failed": False,
+            "llm_fallback_used": False,
+            "llm_error": None,
+            "llm_files_analyzed": 0,
+            "llm_batches_analyzed": 0,
+        }
 
     if state.get("use_llm", True) is False:
-        return {"filtered_findings": _fallback_filtered(findings)}
+        return {
+            "filtered_findings": _fallback_filtered(findings),
+            "llm_used": False,
+            "llm_failed": False,
+            "llm_fallback_used": False,
+            "llm_error": None,
+            "llm_files_analyzed": 0,
+            "llm_batches_analyzed": 0,
+        }
 
     file_cache: dict[str, str] = state.get("file_cache") or {}
     manifest: dict[str, object] = state.get("manifest") or {}
     model_config: dict[str, str] = state.get("model_config") or {}
     model = model_config.get("meta_analyzer")
+    strict_llm: bool = state.get("strict_llm", False)
 
     metadata_text = _format_metadata(manifest)
     files_with_findings = sorted({f.file for f in findings})
@@ -399,9 +417,30 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
             len(findings),
             len(filtered),
         )
-        return {"filtered_findings": filtered}
+        return {
+            "filtered_findings": filtered,
+            "llm_used": True,
+            "llm_failed": False,
+            "llm_fallback_used": False,
+            "llm_error": None,
+            "llm_files_analyzed": len(files_with_findings),
+            "llm_batches_analyzed": len(batches),
+        }
     except ValueError:
         raise
     except Exception as e:
-        logger.warning("LLM call failed, using fallback: %s", e)
-        return {"filtered_findings": _fallback_filtered(findings)}
+        error_msg = f"{type(e).__name__}: {e}"
+        logger.warning("LLM call failed, using fallback: %s", error_msg)
+        if strict_llm:
+            raise ValueError(
+                f"LLM analysis failed and --strict-llm is set: {error_msg}"
+            ) from e
+        return {
+            "filtered_findings": _fallback_filtered(findings),
+            "llm_used": False,
+            "llm_failed": True,
+            "llm_fallback_used": True,
+            "llm_error": error_msg,
+            "llm_files_analyzed": 0,
+            "llm_batches_analyzed": 0,
+        }
