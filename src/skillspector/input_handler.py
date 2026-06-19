@@ -41,6 +41,13 @@ from skillspector.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+# Ingestion budget constants
+MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_ARCHIVE_ENTRIES = 1_000
+MAX_ARCHIVE_EXPANDED_BYTES = 200 * 1024 * 1024  # 200 MB
+MAX_ARCHIVE_RATIO = 100  # expansion ratio limit (zip bomb guard)
+MAX_ARCHIVE_COMPRESSED_BYTES = 50 * 1024 * 1024  # 50 MB
+
 
 class InputHandler:
     """
@@ -148,21 +155,32 @@ class InputHandler:
         return clone_dir
 
     def _download_file(self, url: str) -> Path:
-        """Download a file from URL to a temporary directory."""
+        """Download a file from URL to a temporary directory (size-limited streaming)."""
         temp_dir = self._get_temp_dir()
         parsed = urlparse(url)
         filename = Path(parsed.path).name or "SKILL.md"
+        content_chunks: list[bytes] = []
+        total = 0
         try:
             with httpx.Client(follow_redirects=True, timeout=30) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                content = response.content
+                with client.stream("GET", url) as response:
+                    response.raise_for_status()
+                    for chunk in response.iter_bytes(chunk_size=65536):
+                        total += len(chunk)
+                        if total > MAX_DOWNLOAD_BYTES:
+                            raise ValueError(
+                                f"Download exceeded {MAX_DOWNLOAD_BYTES // (1024*1024)} MB limit: {url}"
+                            )
+                        content_chunks.append(chunk)
         except httpx.HTTPError as e:
             logger.warning("Download failed for %s: %s", url, e)
             raise ValueError(f"Failed to download file: {e}") from e
-        if filename.endswith(".zip") or (
-            response.headers.get("content-type", "").startswith("application/zip")
-        ):
+        content = b"".join(content_chunks)
+        content_type = ""
+        # response is closed here; use filename heuristic for type detection
+        if filename.endswith(".zip"):
+            content_type = "application/zip"
+        if filename.endswith(".zip") or content_type.startswith("application/zip"):
             zip_path = temp_dir / "download.zip"
             zip_path.write_bytes(content)
             return self._extract_zip(zip_path)
@@ -171,18 +189,89 @@ class InputHandler:
         return temp_dir
 
     def _extract_zip(self, zip_path: Path) -> Path:
-        """Extract a zip file to a temporary directory."""
+        """Extract a zip file safely, rejecting path traversal and enforcing budgets."""
         if not zip_path.exists():
             raise FileNotFoundError(f"Zip file not found: {zip_path}") from None
+
+        # Reject oversized compressed archives before opening
+        compressed_size = zip_path.stat().st_size
+        if compressed_size > MAX_ARCHIVE_COMPRESSED_BYTES:
+            raise ValueError(
+                f"Archive too large ({compressed_size // (1024*1024)} MB, "
+                f"limit {MAX_ARCHIVE_COMPRESSED_BYTES // (1024*1024)} MB): {zip_path}"
+            )
+
         temp_dir = self._get_temp_dir()
         extract_dir = temp_dir / "extracted"
         extract_dir.mkdir(exist_ok=True)
+        extract_dir_resolved = extract_dir.resolve()
+
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
-                zf.extractall(extract_dir)
+                members = zf.infolist()
+
+                # Entry count budget
+                if len(members) > MAX_ARCHIVE_ENTRIES:
+                    raise ValueError(
+                        f"Archive has too many entries ({len(members)}, "
+                        f"limit {MAX_ARCHIVE_ENTRIES}): {zip_path}"
+                    )
+
+                # Expanded-bytes budget and zip-bomb ratio check
+                total_expanded = sum(m.file_size for m in members)
+                if total_expanded > MAX_ARCHIVE_EXPANDED_BYTES:
+                    raise ValueError(
+                        f"Archive expands to too many bytes ({total_expanded // (1024*1024)} MB, "
+                        f"limit {MAX_ARCHIVE_EXPANDED_BYTES // (1024*1024)} MB): {zip_path}"
+                    )
+                if compressed_size > 0 and total_expanded / compressed_size > MAX_ARCHIVE_RATIO:
+                    raise ValueError(
+                        f"Archive expansion ratio too high "
+                        f"({total_expanded / compressed_size:.0f}x, "
+                        f"limit {MAX_ARCHIVE_RATIO}x) — possible zip bomb: {zip_path}"
+                    )
+
+                for member in members:
+                    # Reject symlinks (external_attr Unix mode bits)
+                    unix_mode = (member.external_attr >> 16) & 0xFFFF
+                    is_symlink = (unix_mode & 0xA000) == 0xA000
+                    if is_symlink:
+                        logger.warning("Skipping symlink entry in archive: %s", member.filename)
+                        continue
+
+                    # Sanitize member path: reject absolute paths and traversal sequences
+                    member_path = Path(member.filename)
+                    if member_path.is_absolute():
+                        raise ValueError(
+                            f"Archive contains absolute path entry: {member.filename}"
+                        )
+                    parts = member_path.parts
+                    if any(part in ("..", ".") or part.startswith("/") for part in parts[:-1]):
+                        raise ValueError(
+                            f"Archive contains path traversal entry: {member.filename}"
+                        )
+
+                    # Resolve final destination and verify it stays under extract_dir
+                    dest = (extract_dir / member.filename).resolve()
+                    try:
+                        dest.relative_to(extract_dir_resolved)
+                    except ValueError:
+                        raise ValueError(
+                            f"Archive entry would escape extraction directory: {member.filename}"
+                        ) from None
+
+                    # Extract single member
+                    if member.filename.endswith("/"):
+                        dest.mkdir(parents=True, exist_ok=True)
+                    else:
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        with zf.open(member) as src, dest.open("wb") as dst:
+                            shutil.copyfileobj(src, dst)
+
         except zipfile.BadZipFile:
             logger.warning("Invalid zip or extract failed: %s", zip_path)
             raise ValueError(f"Invalid zip file: {zip_path}") from None
+
         contents = list(extract_dir.iterdir())
         if len(contents) == 1 and contents[0].is_dir():
             return contents[0]

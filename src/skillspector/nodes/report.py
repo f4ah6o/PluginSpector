@@ -227,7 +227,10 @@ def _format_terminal(
 
 
 def _build_metadata(
-    has_executable_scripts: bool, use_llm: bool, target_type: str | None = None
+    has_executable_scripts: bool,
+    use_llm: bool,
+    target_type: str | None = None,
+    skipped_files: list[str] | None = None,
 ) -> dict[str, object]:
     """Build the metadata section shared by all output formats."""
     llm_available, llm_error = is_llm_available()
@@ -240,6 +243,12 @@ def _build_metadata(
     }
     if use_llm and not llm_available:
         meta["llm_error"] = llm_error
+    if skipped_files:
+        meta["partial_scan"] = True
+        meta["skipped_files_count"] = len(skipped_files)
+        meta["skipped_files"] = skipped_files[:50]
+    else:
+        meta["partial_scan"] = False
     return meta
 
 
@@ -254,6 +263,7 @@ def _format_json(
     has_executable_scripts: bool,
     use_llm: bool = True,
     target_type: str | None = None,
+    skipped_files: list[str] | None = None,
 ) -> str:
     """Generate JSON report string."""
     skill_name = (manifest.get("name") or "unknown") if manifest else "unknown"
@@ -280,7 +290,7 @@ def _format_json(
             for c in component_metadata
         ],
         "issues": [f.to_dict() for f in findings],
-        "metadata": _build_metadata(has_executable_scripts, use_llm, target_type),
+        "metadata": _build_metadata(has_executable_scripts, use_llm, target_type, skipped_files),
     }
     return json.dumps(data, indent=2)
 
@@ -369,6 +379,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
     output_format = state.get("output_format") or "sarif"
     use_llm = state.get("use_llm", True)
     target_type = state.get("target_type")
+    skipped_files = state.get("skipped_files") or []
 
     risk_score, risk_severity, risk_recommendation = _compute_risk_score(
         findings, has_executable_scripts
@@ -399,6 +410,7 @@ def report(state: SkillspectorState) -> dict[str, object]:
             has_executable_scripts,
             use_llm=use_llm,
             target_type=target_type,
+            skipped_files=skipped_files,
         )
     elif output_format == "markdown":
         report_body = _format_markdown(

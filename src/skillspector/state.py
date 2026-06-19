@@ -38,6 +38,8 @@ class SkillspectorState(TypedDict, total=False):
 
     # build_context node populates these
     components: list[str]
+    # Files skipped by build_context due to budget/depth limits (partial scan indicator)
+    skipped_files: list[str]
     file_cache: dict[str, str]
     ast_cache: dict[str, str]
     manifest: dict[str, object]

@@ -34,6 +34,11 @@ from skillspector.state import SkillspectorState
 
 logger = get_logger(__name__)
 
+# File-cache budget constants
+MAX_FILE_COUNT = 2_000
+MAX_TOTAL_SCAN_BYTES = 200 * 1024 * 1024  # 200 MB
+MAX_DIR_DEPTH = 20
+
 # Directories to skip when walking
 _SKIP_DIRS = frozenset(
     {".git", "__pycache__", "node_modules", ".venv", "venv", ".tox", ".pytest_cache"}
@@ -81,16 +86,37 @@ def _resolve_skill_dir(state: SkillspectorState) -> Path:
     return resolved
 
 
-def _walk_skill_files(skill_dir: Path) -> list[str]:
-    """Walk skill directory and return sorted relative path strings.
+def _walk_skill_files(
+    skill_dir: Path,
+) -> tuple[list[str], list[str]]:
+    """Walk skill directory and return (included_paths, skipped_paths).
 
-    Skips _SKIP_DIRS and hidden files except those starting with .claude.
+    Skips _SKIP_DIRS, hidden files (except .claude* / _INCLUDED_DOTFILES),
+    symlinks escaping the root, files exceeding MAX_DIR_DEPTH, and files that
+    would push the total count or byte budget over the limit.  Returns both the
+    accepted relative path strings and a list of skipped-reason strings so
+    callers can surface partial-scan information.
     """
     paths: list[str] = []
+    skipped: list[str] = []
     skill_dir_resolved = skill_dir.resolve()
+    total_bytes = 0
+
     for item in skill_dir.rglob("*"):
         if not item.is_file():
             continue
+
+        # Depth limit
+        try:
+            rel = item.relative_to(skill_dir)
+        except ValueError:
+            logger.debug("Skipping path (not under skill_dir): %s", item)
+            skipped.append(f"out-of-root:{item}")
+            continue
+        if len(rel.parts) > MAX_DIR_DEPTH:
+            skipped.append(f"depth-limit:{rel}")
+            continue
+
         if any(skip in item.parts for skip in _SKIP_DIRS):
             continue
         if (
@@ -103,17 +129,31 @@ def _walk_skill_files(skill_dir: Path) -> list[str]:
         if item.is_symlink():
             try:
                 if not item.resolve().is_relative_to(skill_dir_resolved):
+                    skipped.append(f"symlink-escape:{rel}")
                     continue
             except (OSError, RuntimeError):
+                skipped.append(f"symlink-error:{rel}")
                 continue
-        try:
-            rel = item.relative_to(skill_dir)
-            paths.append(str(rel))
-        except ValueError:
-            logger.debug("Skipping path (not under skill_dir): %s", item)
+
+        # File-count budget
+        if len(paths) >= MAX_FILE_COUNT:
+            skipped.append(f"file-count-limit:{rel}")
             continue
+
+        # Total-bytes budget (use stat to avoid reading the file twice)
+        try:
+            size = item.stat().st_size
+        except OSError:
+            size = 0
+        if total_bytes + size > MAX_TOTAL_SCAN_BYTES:
+            skipped.append(f"bytes-limit:{rel}")
+            continue
+        total_bytes += size
+
+        paths.append(str(rel))
+
     paths.sort()
-    return paths
+    return paths, skipped
 
 
 def _infer_file_type(path: str) -> str:
@@ -250,7 +290,13 @@ def build_context(state: SkillspectorState) -> dict[str, object]:
     """
     skill_dir = _resolve_skill_dir(state)
 
-    components = _walk_skill_files(skill_dir)
+    components, skipped_files = _walk_skill_files(skill_dir)
+    if skipped_files:
+        logger.warning(
+            "Scan is partial — %d file(s) skipped due to budget/depth limits: %s",
+            len(skipped_files),
+            skipped_files[:10],
+        )
     file_cache = _read_file_cache(skill_dir, components)
     manifest = _parse_manifest(skill_dir)
     component_metadata, has_executable_scripts = _build_component_metadata(skill_dir, components)
@@ -258,6 +304,7 @@ def build_context(state: SkillspectorState) -> dict[str, object]:
 
     return {
         "components": components,
+        "skipped_files": skipped_files,
         "file_cache": file_cache,
         "ast_cache": {},
         "manifest": manifest,

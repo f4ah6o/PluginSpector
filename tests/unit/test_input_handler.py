@@ -15,6 +15,8 @@
 
 """Tests for skillspector input_handler (resolve directory, zip, single file)."""
 
+import io
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -94,3 +96,114 @@ def test_cleanup_idempotent(tmp_path: Path) -> None:
     handler.resolve(str(tmp_path / "a.md"))
     handler.cleanup()
     handler.cleanup()
+
+
+# ---------------------------------------------------------------------------
+# Security hardening tests (issue #5)
+# ---------------------------------------------------------------------------
+
+
+def _make_zip(tmp_path: Path, members: list[tuple[str, bytes]]) -> Path:
+    """Helper: create a zip with given (name, content) pairs."""
+    zip_path = tmp_path / "test.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        for name, data in members:
+            zf.writestr(name, data)
+    return zip_path
+
+
+def test_zip_path_traversal_rejected(tmp_path: Path) -> None:
+    """Archive entries with ../ traversal must be rejected."""
+    zip_path = _make_zip(tmp_path, [("../evil.py", b"print('pwned')")])
+    handler = InputHandler()
+    try:
+        with pytest.raises(ValueError, match="traversal|escape"):
+            handler._extract_zip(zip_path)
+    finally:
+        handler.cleanup()
+
+
+def test_zip_absolute_path_rejected(tmp_path: Path) -> None:
+    """Archive entries with absolute paths must be rejected."""
+    # zipfile.writestr won't accept absolute paths; write raw bytes instead
+    zip_path = tmp_path / "abs.zip"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        info = zipfile.ZipInfo("/etc/passwd")
+        zf.writestr(info, "root:x:0:0")
+    zip_path.write_bytes(buf.getvalue())
+
+    handler = InputHandler()
+    try:
+        with pytest.raises(ValueError, match="absolute"):
+            handler._extract_zip(zip_path)
+    finally:
+        handler.cleanup()
+
+
+def test_zip_symlink_entry_skipped(tmp_path: Path) -> None:
+    """Symlink entries in archives are skipped (not extracted, no error)."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        info = zipfile.ZipInfo("safe.txt")
+        zf.writestr(info, "safe content")
+        # Create a symlink entry: Unix mode 0xA1FF (symlink + rwxrwxrwx)
+        sym_info = zipfile.ZipInfo("link.txt")
+        sym_info.external_attr = 0xA1FF0000  # symlink type bits
+        zf.writestr(sym_info, "../evil")
+    zip_path = tmp_path / "sym.zip"
+    zip_path.write_bytes(buf.getvalue())
+
+    handler = InputHandler()
+    try:
+        result = handler._extract_zip(zip_path)
+        # safe.txt extracted; link.txt skipped
+        assert (result / "safe.txt").exists()
+        assert not (result / "link.txt").exists()
+    finally:
+        handler.cleanup()
+
+
+def test_zip_too_many_entries_rejected(tmp_path: Path) -> None:
+    """Archives exceeding MAX_ARCHIVE_ENTRIES are rejected."""
+    from skillspector.input_handler import MAX_ARCHIVE_ENTRIES
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for i in range(MAX_ARCHIVE_ENTRIES + 1):
+            zf.writestr(f"file_{i}.txt", "x")
+    zip_path = tmp_path / "big.zip"
+    zip_path.write_bytes(buf.getvalue())
+
+    handler = InputHandler()
+    try:
+        with pytest.raises(ValueError, match="too many entries"):
+            handler._extract_zip(zip_path)
+    finally:
+        handler.cleanup()
+
+
+def test_zip_expansion_ratio_rejected(tmp_path: Path) -> None:
+    """Zip bombs (high expansion ratio) are rejected."""
+    from skillspector.input_handler import MAX_ARCHIVE_RATIO
+
+    # Create a file that looks like it expands to way more than its compressed size
+    # We fake the file_size in the central directory by writing raw
+    buf = io.BytesIO()
+    payload = b"\x00" * 1024  # small payload
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        # Write a large-looking entry by using a large uncompressed declaration
+        info = zipfile.ZipInfo("bomb.txt")
+        info.file_size = 1024 * 1024 * 1024 * 5  # claim 5 GB uncompressed
+        # writestr won't let us set file_size; use compress_type=STORED and raw
+        # Instead use compress to get a real high-ratio entry with repeated bytes
+        zf.writestr("bomb.txt", b"\x00" * (1024 * MAX_ARCHIVE_RATIO * 2))
+    zip_path = tmp_path / "bomb.zip"
+    zip_path.write_bytes(buf.getvalue())
+
+    handler = InputHandler()
+    try:
+        with pytest.raises(ValueError, match="ratio|bomb|expanded"):
+            handler._extract_zip(zip_path)
+    finally:
+        handler.cleanup()
