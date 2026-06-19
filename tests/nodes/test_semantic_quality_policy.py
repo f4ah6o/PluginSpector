@@ -22,9 +22,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillspector.llm_analyzer_base import LLMAnalysisResult, LLMFinding
-from skillspector.models import Finding
-from skillspector.nodes.analyzers.semantic_quality_policy import (
+from pluginspector.llm_analyzer_base import LLMAnalysisResult, LLMFinding
+from pluginspector.models import Finding
+from pluginspector.nodes.analyzers.semantic_quality_policy import (
     ANALYZER_ID,
     ANALYZER_PROMPT,
     node,
@@ -42,7 +42,7 @@ def _mock_get_chat_model(*_args, **_kwargs):
     return mock_llm
 
 
-MOCK_PATCH_TARGET = "skillspector.llm_analyzer_base.get_chat_model"
+MOCK_PATCH_TARGET = "pluginspector.llm_analyzer_base.get_chat_model"
 
 _SAMPLE_LLM_RESPONSE = LLMAnalysisResult(
     findings=[
@@ -74,7 +74,7 @@ class TestUseLlmGuard:
         """When use_llm is True (default), the node should attempt LLM analysis."""
         state = {"file_cache": {"SKILL.md": "# Skill"}}
         with patch(MOCK_PATCH_TARGET, _mock_get_chat_model):
-            from skillspector.llm_analyzer_base import LLMAnalyzerBase
+            from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
             with patch.object(
                 LLMAnalyzerBase, "arun_batches", new_callable=AsyncMock, return_value=[]
@@ -113,7 +113,7 @@ class TestNodeReturnsFindings:
             "model_config": {"semantic_quality_policy": "nvidia/openai/gpt-oss-120b"},
         }
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -142,7 +142,7 @@ class TestNodeReturnsFindings:
             "model_config": {"semantic_quality_policy": "nvidia/openai/gpt-oss-120b"},
         }
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -161,7 +161,7 @@ class TestNodeReturnsFindings:
             "file_cache": {"safe.md": "# Safe skill\nDoes nothing dangerous."},
         }
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -223,7 +223,7 @@ class TestModelResolution:
 
     @patch(MOCK_PATCH_TARGET)
     def test_falls_back_to_constant_default(self, mock_get_model: MagicMock) -> None:
-        from skillspector.constants import _SKILLSPECTOR_DEFAULT_MODEL
+        from pluginspector.constants import _PLUGINSPECTOR_DEFAULT_MODEL
 
         mock_llm = MagicMock()
         mock_llm.with_structured_output.return_value = MagicMock()
@@ -235,7 +235,7 @@ class TestModelResolution:
         state = {"file_cache": {"SKILL.md": "# Skill"}, "model_config": {}}
         node(state)
         call_kwargs = mock_get_model.call_args
-        assert call_kwargs.kwargs.get("model") == _SKILLSPECTOR_DEFAULT_MODEL
+        assert call_kwargs.kwargs.get("model") == _PLUGINSPECTOR_DEFAULT_MODEL
 
 
 # ---------------------------------------------------------------------------
@@ -373,7 +373,7 @@ class TestFixtureMaliciousSkill:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -400,7 +400,7 @@ class TestFixtureMaliciousSkill:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -426,7 +426,7 @@ class TestFixtureMaliciousSkill:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -450,7 +450,7 @@ class TestFixtureMaliciousSkill:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -483,7 +483,7 @@ class TestFixtureSafeSkill:
         file_cache = _build_file_cache(safe_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -514,7 +514,7 @@ class TestFixtureSafeSkill:
             call_count += 1
             return LLMAnalysisResult(findings=[])
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -545,7 +545,7 @@ class TestFixtureOnDisk:
 
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -573,7 +573,7 @@ class TestFixtureOnDisk:
 
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -683,7 +683,7 @@ class TestSqp1VagueTriggers:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -715,7 +715,7 @@ class TestSqp1Clean:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -743,7 +743,7 @@ class TestSqp2MissingWarnings:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -772,7 +772,7 @@ class TestSqp2MissingWarnings:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -801,7 +801,7 @@ class TestSqp2Clean:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -829,7 +829,7 @@ class TestSqp3LocaleForcing:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 
@@ -860,7 +860,7 @@ class TestSqp3Clean:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         orig_init = LLMAnalyzerBase.__init__
 

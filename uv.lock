@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12, <3.14"
 
 [[package]]
@@ -1296,6 +1296,62 @@ wheels = [
 ]
 
 [[package]]
+name = "pluginspector"
+version = "2.2.0"
+source = { editable = "." }
+dependencies = [
+    { name = "httpx" },
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+    { name = "langgraph" },
+    { name = "langgraph-cli", extra = ["inmem"] },
+    { name = "langsmith" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "typer" },
+    { name = "yara-python" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "build" },
+    { name = "mypy" },
+    { name = "poetry" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "twine" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "build", marker = "extra == 'dev'", specifier = ">=1.4.0" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "langchain-core", specifier = ">=1.2.17" },
+    { name = "langchain-openai", specifier = ">=1.1.10" },
+    { name = "langgraph", specifier = ">=1.0.10" },
+    { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.4.14" },
+    { name = "langsmith", specifier = ">=0.7.30" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.19.0" },
+    { name = "openai", specifier = ">=2.25.0" },
+    { name = "poetry", marker = "extra == 'dev'", specifier = ">=2.3.0" },
+    { name = "pydantic", specifier = ">=2.12.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "rich", specifier = ">=14.3.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.0" },
+    { name = "twine", marker = "extra == 'dev'", specifier = ">=6.2.0" },
+    { name = "typer", specifier = ">=0.23.0,<0.24" },
+    { name = "yara-python", specifier = ">=4.5.0" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "poetry"
 version = "2.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1779,62 +1835,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
-
-[[package]]
-name = "skillspector"
-version = "2.1.5"
-source = { editable = "." }
-dependencies = [
-    { name = "httpx" },
-    { name = "langchain-core" },
-    { name = "langchain-openai" },
-    { name = "langgraph" },
-    { name = "langgraph-cli", extra = ["inmem"] },
-    { name = "langsmith" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "rich" },
-    { name = "typer" },
-    { name = "yara-python" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "build" },
-    { name = "mypy" },
-    { name = "poetry" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "twine" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "build", marker = "extra == 'dev'", specifier = ">=1.4.0" },
-    { name = "httpx", specifier = ">=0.28.0" },
-    { name = "langchain-core", specifier = ">=1.2.17" },
-    { name = "langchain-openai", specifier = ">=1.1.10" },
-    { name = "langgraph", specifier = ">=1.0.10" },
-    { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.4.14" },
-    { name = "langsmith", specifier = ">=0.7.30" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.19.0" },
-    { name = "openai", specifier = ">=2.25.0" },
-    { name = "poetry", marker = "extra == 'dev'", specifier = ">=2.3.0" },
-    { name = "pydantic", specifier = ">=2.12.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "rich", specifier = ">=14.3.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.0" },
-    { name = "twine", marker = "extra == 'dev'", specifier = ">=6.2.0" },
-    { name = "typer", specifier = ">=0.23.0,<0.24" },
-    { name = "yara-python", specifier = ">=4.5.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "sniffio"

@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from skillspector.nodes.analyzers import behavioral_ast
+from pluginspector.nodes.analyzers import behavioral_ast
 
 
 def _run(code: str, filename: str = "script.py") -> list:

@@ -25,8 +25,8 @@ from pathlib import Path
 
 import pytest
 
-from skillspector.nodes.analyzers import static_yara
-from skillspector.nodes.analyzers.static_runner import MAX_FILE_BYTES
+from pluginspector.nodes.analyzers import static_yara
+from pluginspector.nodes.analyzers.static_runner import MAX_FILE_BYTES
 
 
 @pytest.fixture(autouse=True)

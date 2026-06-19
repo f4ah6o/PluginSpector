@@ -21,7 +21,7 @@ import json
 import os
 from pathlib import Path
 
-from skillspector.claude_plugin import TargetType, detect_target_type, parse_plugin
+from pluginspector.claude_plugin import TargetType, detect_target_type, parse_plugin
 
 
 def _write(path: Path, content: str) -> None:

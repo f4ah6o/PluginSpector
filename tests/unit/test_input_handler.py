@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from skillspector.input_handler import InputHandler
+from pluginspector.input_handler import InputHandler
 
 
 def test_resolve_directory(tmp_path: Path) -> None:
@@ -53,8 +53,6 @@ def test_resolve_single_md_file(tmp_path: Path) -> None:
 
 def test_resolve_zip_file(tmp_path: Path) -> None:
     """Resolving a .zip file extracts and returns the extract dir."""
-    import zipfile
-
     (tmp_path / "SKILL.md").write_text("# Skill", encoding="utf-8")
     zip_path = tmp_path / "skill.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
@@ -166,7 +164,7 @@ def test_zip_symlink_entry_skipped(tmp_path: Path) -> None:
 
 def test_zip_too_many_entries_rejected(tmp_path: Path) -> None:
     """Archives exceeding MAX_ARCHIVE_ENTRIES are rejected."""
-    from skillspector.input_handler import MAX_ARCHIVE_ENTRIES
+    from pluginspector.input_handler import MAX_ARCHIVE_ENTRIES
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
@@ -185,7 +183,7 @@ def test_zip_too_many_entries_rejected(tmp_path: Path) -> None:
 
 def test_zip_expansion_ratio_rejected(tmp_path: Path) -> None:
     """Zip bombs (high expansion ratio) are rejected."""
-    from skillspector.input_handler import MAX_ARCHIVE_RATIO
+    from pluginspector.input_handler import MAX_ARCHIVE_RATIO
 
     # Create a file that looks like it expands to way more than its compressed size
     # We fake the file_size in the central directory by writing raw

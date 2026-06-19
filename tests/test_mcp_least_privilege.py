@@ -22,7 +22,7 @@ from pathlib import Path
 
 import yaml
 
-from skillspector.nodes.analyzers import mcp_least_privilege
+from pluginspector.nodes.analyzers import mcp_least_privilege
 
 # ---------------------------------------------------------------------------
 # Fixture directory path

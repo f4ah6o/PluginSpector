@@ -17,4 +17,4 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 WORKDIR /scan
 
-ENTRYPOINT ["skillspector"]
+ENTRYPOINT ["pluginspector"]

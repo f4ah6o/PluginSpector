@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from skillspector.graph import graph
+from pluginspector.graph import graph
 
 
 def test_graph_invoke_with_output_format_json(tmp_path: Path) -> None:

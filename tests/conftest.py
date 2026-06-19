@@ -25,7 +25,7 @@ import pytest
 def mock_resolve_context_length():
     """Patch the layered resolver so tests never make network requests."""
     with patch(
-        "skillspector.model_info._resolve_context_length",
+        "pluginspector.model_info._resolve_context_length",
         return_value=131_072,
     ):
         yield

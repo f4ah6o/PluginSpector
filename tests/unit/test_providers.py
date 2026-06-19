@@ -24,17 +24,17 @@ from __future__ import annotations
 
 import pytest
 
-from skillspector.providers import (
+from pluginspector.providers import (
     get_metadata_provider,
     registry,
     resolve_provider_credentials,
 )
-from skillspector.providers.anthropic import ANTHROPIC_BASE_URL, AnthropicProvider
-from skillspector.providers.nv_build import BUILD_BASE_URL, NvBuildProvider
-from skillspector.providers.openai import OpenAIProvider
+from pluginspector.providers.anthropic import ANTHROPIC_BASE_URL, AnthropicProvider
+from pluginspector.providers.nv_build import BUILD_BASE_URL, NvBuildProvider
+from pluginspector.providers.openai import OpenAIProvider
 
 try:
-    from skillspector.providers.nv_inference import (
+    from pluginspector.providers.nv_inference import (
         INFERENCE_BASE_URL,
         NvInferenceProvider,
     )
@@ -57,9 +57,9 @@ def _clean_provider_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("SKILLSPECTOR_MODEL", raising=False)
-    monkeypatch.delenv("SKILLSPECTOR_MODEL_REGISTRY", raising=False)
-    monkeypatch.delenv("SKILLSPECTOR_PROVIDER", raising=False)
+    monkeypatch.delenv("PLUGINSPECTOR_MODEL", raising=False)
+    monkeypatch.delenv("PLUGINSPECTOR_MODEL_REGISTRY", raising=False)
+    monkeypatch.delenv("PLUGINSPECTOR_PROVIDER", raising=False)
     registry._load.cache_clear()
     yield
     registry._load.cache_clear()
@@ -91,7 +91,7 @@ class TestNvBuildProvider:
         assert NvBuildProvider().resolve_model() == NvBuildProvider.DEFAULT_MODEL
 
     def test_resolve_model_env_overrides_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("SKILLSPECTOR_MODEL", "user/override")
+        monkeypatch.setenv("PLUGINSPECTOR_MODEL", "user/override")
         assert NvBuildProvider().resolve_model() == "user/override"
         # Env override applies to every slot.
         assert NvBuildProvider().resolve_model("meta_analyzer") == "user/override"
@@ -155,7 +155,7 @@ class TestNvInferenceProvider:
     def test_resolve_model_env_overrides_slot_default(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("SKILLSPECTOR_MODEL", "user/override")
+        monkeypatch.setenv("PLUGINSPECTOR_MODEL", "user/override")
         # Env wins over the meta_analyzer slot default.
         assert NvInferenceProvider().resolve_model("meta_analyzer") == "user/override"
 
@@ -213,7 +213,7 @@ class TestAnthropicProvider:
 
 
 class TestProviderSelection:
-    """SKILLSPECTOR_PROVIDER selects which provider answers credentials."""
+    """PLUGINSPECTOR_PROVIDER selects which provider answers credentials."""
 
     def test_no_env_defaults_to_nvidia_path(self) -> None:
         # Without credentials, the default-path provider returns None.
@@ -231,29 +231,29 @@ class TestProviderSelection:
         assert base_url == expected_url
 
     def test_select_openai(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("SKILLSPECTOR_PROVIDER", "openai")
+        monkeypatch.setenv("PLUGINSPECTOR_PROVIDER", "openai")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-x")
-        # NVIDIA env set but ignored when SKILLSPECTOR_PROVIDER=openai.
+        # NVIDIA env set but ignored when PLUGINSPECTOR_PROVIDER=openai.
         monkeypatch.setenv("NVIDIA_INFERENCE_KEY", "should-be-ignored")
         creds = resolve_provider_credentials()
         assert creds == ("sk-x", None)
         assert isinstance(get_metadata_provider(), OpenAIProvider)
 
     def test_select_anthropic(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("SKILLSPECTOR_PROVIDER", "anthropic")
+        monkeypatch.setenv("PLUGINSPECTOR_PROVIDER", "anthropic")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-x")
         creds = resolve_provider_credentials()
         assert creds == ("sk-ant-x", ANTHROPIC_BASE_URL)
         assert isinstance(get_metadata_provider(), AnthropicProvider)
 
     def test_select_nv_build(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("SKILLSPECTOR_PROVIDER", "nv_build")
+        monkeypatch.setenv("PLUGINSPECTOR_PROVIDER", "nv_build")
         monkeypatch.setenv("NVIDIA_INFERENCE_KEY", "nvapi-x")
         creds = resolve_provider_credentials()
         assert creds == ("nvapi-x", BUILD_BASE_URL)
         assert isinstance(get_metadata_provider(), NvBuildProvider)
 
     def test_unknown_provider_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("SKILLSPECTOR_PROVIDER", "vertex")
-        with pytest.raises(ValueError, match="Unknown SKILLSPECTOR_PROVIDER"):
+        monkeypatch.setenv("PLUGINSPECTOR_PROVIDER", "vertex")
+        with pytest.raises(ValueError, match="Unknown PLUGINSPECTOR_PROVIDER"):
             get_metadata_provider()

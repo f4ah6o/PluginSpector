@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from skillspector.nodes.resolve_input import resolve_input
+from pluginspector.nodes.resolve_input import resolve_input
 
 
 def test_resolve_input_with_input_path_directory(tmp_path: Path) -> None:

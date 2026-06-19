@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "skillspector"
-version = "2.1.5"
-description = "SkillSpector: Security scanner for AI agent skills (Claude Code, Cursor, and similar). Scans skills for vulnerabilities, malicious patterns, and security risks before installation. Supports Git repos, URLs, zips, and local directories; runs static pattern checks and optional LLM semantic analysis; outputs terminal, JSON, and Markdown reports with risk scoring."
+name = "pluginspector"
+version = "2.2.0"
+description = "PluginSpector: Security scanner for Claude Code plugins and AI agent skills. Scans plugins for vulnerabilities, malicious patterns, and security risks before installation. Supports Git repos, URLs, zips, and local directories; runs static pattern checks and optional LLM semantic analysis; outputs terminal, JSON, Markdown, and SARIF reports with risk scoring."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.12,<3.14"
@@ -57,22 +57,23 @@ dev = [
 ]
 
 [project.scripts]
-skillspector = "skillspector.cli:app"
+pluginspector = "pluginspector.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/NVIDIA/skillspector"
-Documentation = "https://github.com/NVIDIA/skillspector#readme"
-Issues = "https://github.com/NVIDIA/skillspector/issues"
+Homepage = "https://github.com/f4ah6o/PluginSpector"
+Documentation = "https://github.com/f4ah6o/PluginSpector#readme"
+Issues = "https://github.com/f4ah6o/PluginSpector/issues"
+Upstream = "https://github.com/NVIDIA/SkillSpector"
 
 [tool.hatch.build]
 exclude = [".claude/", ".cursor/", ".agents/"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/skillspector"]
+packages = ["src/pluginspector"]
 artifacts = [
-    "src/skillspector/yara_rules/*.yar",
-    "src/skillspector/yara_rules/*.yara",
-    "src/skillspector/providers/*/model_registry.yaml",
+    "src/pluginspector/yara_rules/*.yar",
+    "src/pluginspector/yara_rules/*.yara",
+    "src/pluginspector/providers/*/model_registry.yaml",
 ]
 
 [tool.ruff]
@@ -92,7 +93,7 @@ disallow_untyped_defs = true
 [tool.coverage.run]
 branch = true
 relative_files = true
-source = ["src/skillspector"]
+source = ["src/pluginspector"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

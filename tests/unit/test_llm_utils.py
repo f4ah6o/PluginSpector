@@ -24,8 +24,8 @@ from __future__ import annotations
 
 import pytest
 
-from skillspector.llm_utils import _resolve_llm_credentials, is_llm_available
-from skillspector.providers import resolve_provider_credentials
+from pluginspector.llm_utils import _resolve_llm_credentials, is_llm_available
+from pluginspector.providers import resolve_provider_credentials
 
 _LLM_ENV_VARS = (
     "OPENAI_API_KEY",

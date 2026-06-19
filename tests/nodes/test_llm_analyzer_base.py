@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillspector.llm_analyzer_base import (
+from pluginspector.llm_analyzer_base import (
     Batch,
     LLMAnalysisResult,
     LLMAnalyzerBase,
@@ -31,8 +31,8 @@ from skillspector.llm_analyzer_base import (
     findings_in_range,
     number_lines,
 )
-from skillspector.models import Finding
-from skillspector.nodes.meta_analyzer import (
+from pluginspector.models import Finding
+from pluginspector.nodes.meta_analyzer import (
     LLMMetaAnalyzer,
     MetaAnalyzerFinding,
     MetaAnalyzerResult,
@@ -161,7 +161,7 @@ def _mock_get_chat_model(*_args, **_kwargs):
     return mock_llm
 
 
-MOCK_PATCH_TARGET = "skillspector.llm_analyzer_base.get_chat_model"
+MOCK_PATCH_TARGET = "pluginspector.llm_analyzer_base.get_chat_model"
 
 
 # ---------------------------------------------------------------------------
@@ -1209,7 +1209,7 @@ class TestLLMMetaAnalyzerARunBatches:
 
 class TestTokenBudgetFunctions:
     def test_known_model(self) -> None:
-        from skillspector.model_info import get_max_input_tokens, get_max_output_tokens
+        from pluginspector.model_info import get_max_input_tokens, get_max_output_tokens
 
         inp = get_max_input_tokens("nvidia/openai/gpt-oss-120b")
         out = get_max_output_tokens("nvidia/openai/gpt-oss-120b")
@@ -1218,7 +1218,7 @@ class TestTokenBudgetFunctions:
 
     def test_unknown_model_uses_default(self) -> None:
         """Unknown model uses the conftest-mocked context length (131_072)."""
-        from skillspector.model_info import get_max_input_tokens, get_max_output_tokens
+        from pluginspector.model_info import get_max_input_tokens, get_max_output_tokens
 
         mocked_ctx = 131_072
         inp = get_max_input_tokens("unknown/model")

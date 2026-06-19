@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from skillspector.graph import graph
+from pluginspector.graph import graph
 
 
 def test_use_llm_false_returns_filtered_findings(tmp_path: Path) -> None:

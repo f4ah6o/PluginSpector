@@ -23,13 +23,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from skillspector.constants import DEFAULT_CONTEXT_LENGTH, MAX_INPUT_TOKENS_PCT
+from pluginspector.constants import DEFAULT_CONTEXT_LENGTH, MAX_INPUT_TOKENS_PCT
 
-MODULE = "skillspector.model_info"
-NV_PROVIDER_MODULE = "skillspector.providers.nv_inference.provider"
+MODULE = "pluginspector.model_info"
+NV_PROVIDER_MODULE = "pluginspector.providers.nv_inference.provider"
 
 try:
-    import skillspector.providers.nv_inference.provider  # noqa: F401
+    import pluginspector.providers.nv_inference.provider  # noqa: F401
 
     _NV_PROVIDER_AVAILABLE = True
 except ImportError:
@@ -43,8 +43,8 @@ nv_provider_required = pytest.mark.skipif(
 
 def _clear_caches() -> None:
     """Clear all functools.cache caches across model_info and the providers."""
-    from skillspector import model_info
-    from skillspector.providers import registry
+    from pluginspector import model_info
+    from pluginspector.providers import registry
 
     model_info._resolve_context_length.cache_clear()
     registry._load_registry.cache_clear()
@@ -76,8 +76,8 @@ def _get_real_functions():
     """Import the real (unpatched) module-level functions."""
     import importlib
 
-    import skillspector.model_info as mod
-    from skillspector.providers import registry
+    import pluginspector.model_info as mod
+    from pluginspector.providers import registry
 
     importlib.reload(mod)
     mod._resolve_context_length.cache_clear()
@@ -126,7 +126,7 @@ class TestLayer1NvidiaApi:
                 "os.environ",
                 {
                     "NVIDIA_INFERENCE_METADATA_KEY": "test-key",
-                    "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                    "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
                 },
                 clear=False,
             ),
@@ -152,7 +152,7 @@ class TestLayer1NvidiaApi:
                 "os.environ",
                 {
                     "NVIDIA_INFERENCE_METADATA_KEY": "",
-                    "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                    "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
                 },
                 clear=False,
             ),
@@ -164,7 +164,7 @@ class TestLayer1NvidiaApi:
 
 
 # ---------------------------------------------------------------------------
-# Layer 2 — YAML registry (via SKILLSPECTOR_MODEL_REGISTRY env var)
+# Layer 2 — YAML registry (via PLUGINSPECTOR_MODEL_REGISTRY env var)
 # ---------------------------------------------------------------------------
 
 
@@ -187,7 +187,7 @@ class TestLayer2Registry:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
             },
             clear=False,
         ):
@@ -210,7 +210,7 @@ class TestLayer2Registry:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
             },
             clear=False,
         ):
@@ -218,12 +218,12 @@ class TestLayer2Registry:
             assert result == 64_000
 
     def test_no_registry_env_var_returns_empty(self) -> None:
-        """When SKILLSPECTOR_MODEL_REGISTRY is unset, registry is empty."""
+        """When PLUGINSPECTOR_MODEL_REGISTRY is unset, registry is empty."""
         mod = _get_real_functions()
 
         with patch.dict(
             "os.environ",
-            {"NVIDIA_INFERENCE_METADATA_KEY": "", "SKILLSPECTOR_MODEL_REGISTRY": ""},
+            {"NVIDIA_INFERENCE_METADATA_KEY": "", "PLUGINSPECTOR_MODEL_REGISTRY": ""},
             clear=False,
         ):
             result = mod._resolve_context_length("any/model")
@@ -237,7 +237,7 @@ class TestLayer2Registry:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": "/nonexistent/path.yaml",
+                "PLUGINSPECTOR_MODEL_REGISTRY": "/nonexistent/path.yaml",
             },
             clear=False,
         ):
@@ -269,7 +269,7 @@ class TestFallback:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
             },
             clear=False,
         ):
@@ -300,7 +300,7 @@ class TestPublicApi:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
             },
             clear=False,
         ):
@@ -323,7 +323,7 @@ class TestPublicApi:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
             },
             clear=False,
         ):
@@ -348,7 +348,7 @@ class TestPublicApi:
             "os.environ",
             {
                 "NVIDIA_INFERENCE_METADATA_KEY": "",
-                "SKILLSPECTOR_MODEL_REGISTRY": str(registry_file),
+                "PLUGINSPECTOR_MODEL_REGISTRY": str(registry_file),
             },
             clear=False,
         ):

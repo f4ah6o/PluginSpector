@@ -19,7 +19,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from skillspector.cli import app
+from pluginspector.cli import app
 
 runner = CliRunner()
 
@@ -28,7 +28,7 @@ def test_cli_version() -> None:
     """--version prints version and exits 0."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "SkillSpector" in result.output
+    assert "PluginSpector" in result.output
     assert "v" in result.output
 
 
