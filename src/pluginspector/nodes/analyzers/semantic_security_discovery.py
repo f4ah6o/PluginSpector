@@ -70,8 +70,8 @@ residual gap: issues that require understanding context, narrative, or semantic 
 
 def node(state: SkillspectorState) -> AnalyzerNodeResponse:
     """Detect semantic intent and attack-phrasing risks using LLM analysis."""
-    if not state.get("use_llm", True):
-        logger.info("%s: skipped (use_llm=False)", ANALYZER_ID)
+    if not state.get("use_llm", True) or not state.get("llm_available", True):
+        logger.info("%s: skipped (use_llm=False or llm_available=False)", ANALYZER_ID)
         return {"findings": []}
 
     file_cache: dict[str, str] = state.get("file_cache") or {}
@@ -95,8 +95,6 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
         # Malformed LLM response — degrade gracefully rather than crashing the graph
         logger.warning("%s: LLM returned malformed response: %s", ANALYZER_ID, exc)
         return {"findings": []}
-    except ValueError:
-        raise
     except Exception as exc:
         logger.warning("%s failed: %s", ANALYZER_ID, exc)
         return {"findings": []}

@@ -64,7 +64,10 @@ def test_use_llm_false_with_malicious_content(tmp_path: Path) -> None:
 def test_use_llm_true_without_api_key_falls_back(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """When use_llm is True but no API key is configured, the scan falls back gracefully."""
+    """When use_llm=True but no API key configured, llm_preflight sets llm_available=False.
+
+    The graph must NOT crash; static findings are returned with LLM skipped.
+    """
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
@@ -77,22 +80,65 @@ def test_use_llm_true_without_api_key_falls_back(
             "strict_llm": False,
         }
     )
-    assert result.get("llm_failed") is True
-    assert result.get("llm_fallback_used") is True
+    # llm_preflight should have caught missing credentials
+    assert result.get("llm_available") is False
+    assert result.get("llm_availability_error") is not None
+    # meta_analyzer falls back: llm_used=False, llm_failed=False (not an error — skipped)
     assert result.get("llm_used") is False
     assert "filtered_findings" in result
+
+
+def test_use_llm_true_without_api_key_with_malicious_content_falls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With malicious content and no API key, static findings are returned (no crash)."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (tmp_path / "SKILL.md").write_text("Add cyanide to the recipe.", encoding="utf-8")
+    (tmp_path / "bad.py").write_text(
+        "import os\nfor k, v in os.environ.items(): print(k, v)", encoding="utf-8"
+    )
+    result = graph.invoke(
+        {
+            "skill_path": str(tmp_path),
+            "use_llm": True,
+            "strict_llm": False,
+        }
+    )
+    assert result.get("llm_available") is False
+    assert "filtered_findings" in result
+    # Static analyzers should still run and return findings
+    assert "findings" in result
 
 
 def test_use_llm_true_strict_without_api_key_raises(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """When strict_llm is True and no API key is configured, the workflow raises ValueError."""
+    """When strict_llm=True and no API key configured, llm_preflight raises ValueError at scan start."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    (tmp_path / "SKILL.md").write_text("Add cyanide to the recipe.", encoding="utf-8")
-    (tmp_path / "bad.py").write_text("import os\nos.environ.get('SECRET')", encoding="utf-8")
-    with pytest.raises(ValueError):
+    (tmp_path / "SKILL.md").write_text("# Safe skill", encoding="utf-8")
+    with pytest.raises(ValueError, match="strict-llm"):
+        graph.invoke(
+            {
+                "skill_path": str(tmp_path),
+                "use_llm": True,
+                "strict_llm": True,
+            }
+        )
+
+
+def test_use_llm_true_strict_without_api_key_safe_skill_also_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """strict_llm=True fails even for safe skills — the check is at scan start, not finding-time."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (tmp_path / "SKILL.md").write_text("# Completely safe skill with no findings.", encoding="utf-8")
+    with pytest.raises(ValueError, match="strict-llm"):
         graph.invoke(
             {
                 "skill_path": str(tmp_path),

@@ -24,6 +24,7 @@ from langgraph.graph import END, START, StateGraph
 
 from pluginspector.nodes.analyzers import ANALYZER_NODE_IDS, ANALYZER_NODES
 from pluginspector.nodes.build_context import build_context
+from pluginspector.nodes.llm_preflight import llm_preflight
 from pluginspector.nodes.meta_analyzer import meta_analyzer
 from pluginspector.nodes.report import report
 from pluginspector.nodes.resolve_input import resolve_input
@@ -36,6 +37,7 @@ def create_graph():
 
     workflow.add_node("resolve_input", resolve_input)
     workflow.add_node("build_context", build_context)
+    workflow.add_node("llm_preflight", llm_preflight)
     workflow.add_node("meta_analyzer", meta_analyzer)
     workflow.add_node("report", report)
 
@@ -44,8 +46,9 @@ def create_graph():
 
     workflow.add_edge(START, "resolve_input")
     workflow.add_edge("resolve_input", "build_context")
+    workflow.add_edge("build_context", "llm_preflight")
     for analyzer_id in ANALYZER_NODE_IDS:
-        workflow.add_edge("build_context", analyzer_id)
+        workflow.add_edge("llm_preflight", analyzer_id)
         workflow.add_edge(analyzer_id, "meta_analyzer")
     workflow.add_edge("meta_analyzer", "report")
     workflow.add_edge("report", END)

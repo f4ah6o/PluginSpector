@@ -129,7 +129,7 @@ Use rule ID **SQP-3** for all policy-violation findings.
 
 def node(state: SkillspectorState) -> AnalyzerNodeResponse:
     """Discover quality/policy findings via LLM analysis."""
-    if not state.get("use_llm", True):
+    if not state.get("use_llm", True) or not state.get("llm_available", True):
         return {"findings": []}
 
     file_cache: dict[str, str] = state.get("file_cache") or {}
@@ -149,8 +149,6 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
         findings = analyzer.collect_findings(results)
         logger.info("%s: %d findings", ANALYZER_ID, len(findings))
         return {"findings": findings}
-    except ValueError:
-        raise
     except Exception as exc:
         logger.warning("%s failed: %s", ANALYZER_ID, exc)
         return {"findings": []}

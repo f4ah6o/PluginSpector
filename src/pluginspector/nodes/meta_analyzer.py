@@ -378,7 +378,7 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
             "llm_batches_analyzed": 0,
         }
 
-    if state.get("use_llm", True) is False:
+    if state.get("use_llm", True) is False or state.get("llm_available", True) is False:
         return {
             "filtered_findings": _fallback_filtered(findings),
             "llm_used": False,
@@ -393,7 +393,6 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
     manifest: dict[str, object] = state.get("manifest") or {}
     model_config: dict[str, str] = state.get("model_config") or {}
     model = model_config.get("meta_analyzer")
-    strict_llm: bool = state.get("strict_llm", False)
 
     metadata_text = _format_metadata(manifest)
     files_with_findings = sorted({f.file for f in findings})
@@ -428,10 +427,6 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
     except Exception as e:
         error_msg = f"{type(e).__name__}: {e}"
         logger.warning("LLM call failed, using fallback: %s", error_msg)
-        if strict_llm:
-            raise ValueError(
-                f"LLM analysis failed and --strict-llm is set: {error_msg}"
-            ) from e
         return {
             "filtered_findings": _fallback_filtered(findings),
             "llm_used": False,

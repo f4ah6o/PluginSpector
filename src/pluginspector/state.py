@@ -74,6 +74,11 @@ class SkillspectorState(TypedDict, total=False):
     # Fail closed when LLM is requested but unavailable/failing (--strict-llm)
     strict_llm: bool
 
+    # Set by llm_preflight node (runs after build_context, before all analyzers).
+    # Analyzers check this instead of calling is_llm_available() themselves.
+    llm_available: bool
+    llm_availability_error: str | None
+
     # LLM execution status set by meta_analyzer (for reporting and CI)
     llm_used: bool
     llm_failed: bool
