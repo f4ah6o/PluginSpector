@@ -161,10 +161,13 @@ class InputHandler:
         filename = Path(parsed.path).name or "SKILL.md"
         content_chunks: list[bytes] = []
         total = 0
+        content_type = ""
         try:
             with httpx.Client(follow_redirects=True, timeout=30) as client:
                 with client.stream("GET", url) as response:
                     response.raise_for_status()
+                    # Capture Content-Type while the stream is open (headers are available here)
+                    content_type = response.headers.get("content-type", "")
                     for chunk in response.iter_bytes(chunk_size=65536):
                         total += len(chunk)
                         if total > MAX_DOWNLOAD_BYTES:
@@ -176,10 +179,6 @@ class InputHandler:
             logger.warning("Download failed for %s: %s", url, e)
             raise ValueError(f"Failed to download file: {e}") from e
         content = b"".join(content_chunks)
-        content_type = ""
-        # response is closed here; use filename heuristic for type detection
-        if filename.endswith(".zip"):
-            content_type = "application/zip"
         if filename.endswith(".zip") or content_type.startswith("application/zip"):
             zip_path = temp_dir / "download.zip"
             zip_path.write_bytes(content)
