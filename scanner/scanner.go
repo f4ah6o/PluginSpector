@@ -84,6 +84,9 @@ func Scan(opts Options) (*Result, error) {
 	st := buildContext(skillDir, opts.YaraRulesDir, opts.UseLLM)
 
 	findings := runAnalyzers(st)
+	// Escaping symlinks are detected during the file walk; surface them as
+	// findings so they affect the risk score even for non-plugin targets.
+	findings = append(findings, symlinkEscapeFindings(st)...)
 
 	filtered, llm, err := runMeta(st, findings, opts.StrictLLM)
 	if err != nil {

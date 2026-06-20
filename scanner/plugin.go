@@ -374,6 +374,27 @@ func claudePluginStructureAnalyzer(st *scanState) []Finding {
 	return findings
 }
 
+// symlinkEscapeFindings turns walk-level symlink escapes into CP003 findings so
+// the install gate is not bypassed for standalone skills / generic directories.
+// Claude plugins already get CP003 from claudePluginStructureAnalyzer (which
+// scans the plugin model), so they are skipped here to avoid double counting.
+func symlinkEscapeFindings(st *scanState) []Finding {
+	if st.PluginModel != nil && st.PluginModel.TargetType == TargetClaudePlugin {
+		return nil
+	}
+	var out []Finding
+	for _, s := range st.SkippedFiles {
+		rel, ok := strings.CutPrefix(s, "symlink-escape:")
+		if !ok {
+			continue
+		}
+		out = append(out, makeClaudeFinding("CP003", "HIGH", rel, 1,
+			fmt.Sprintf("Symlink '%s' points outside the scan root and was skipped during scanning; it can smuggle external host files into the scanned target.", rel),
+			0.9, rel))
+	}
+	return out
+}
+
 // makeClaudeFinding mirrors claude_common.make_finding.
 func makeClaudeFinding(ruleID, severity, file string, line int, message string, conf float64, matched string) Finding {
 	if line <= 0 {

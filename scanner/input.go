@@ -92,6 +92,11 @@ func isGitURL(path string) bool {
 	if err == nil {
 		host = parsed.Host
 	}
+	// Downloadable archive URLs (e.g. github.com/org/repo/archive/refs/heads/
+	// main.zip) must go to the downloader/extractor, not `git clone`.
+	if strings.HasSuffix(path, ".zip") {
+		return false
+	}
 	gitHosts := []string{"github.com", "gitlab.com", "bitbucket.org"}
 	for _, gh := range gitHosts {
 		if strings.Contains(host, gh) {

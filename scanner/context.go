@@ -8,6 +8,7 @@
 package scanner
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -69,13 +70,31 @@ type scanState struct {
 	UseLLM               bool
 }
 
+// errStopWalk halts the walk once the file-count budget is exhausted, bounding
+// work on hostile inputs.
+var errStopWalk = errors.New("scan budget reached")
+
 func walkSkillFiles(skillDir string) (paths []string, skipped []string) {
 	totalBytes := int64(0)
-	_ = filepath.Walk(skillDir, func(p string, info os.FileInfo, err error) error {
+	rootResolved, _ := filepath.EvalSymlinks(skillDir)
+	err := filepath.Walk(skillDir, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info == nil {
 			return nil
 		}
 		if info.IsDir() {
+			// Prune excluded and over-deep directories before descending so the
+			// scanner never traverses .git/node_modules/.venv trees (DoS guard).
+			if p == skillDir {
+				return nil
+			}
+			if skipDirs[info.Name()] {
+				return filepath.SkipDir
+			}
+			if rel, relErr := filepath.Rel(skillDir, p); relErr == nil {
+				if len(strings.Split(filepath.ToSlash(rel), "/")) > maxDirDepth {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		rel, relErr := filepath.Rel(skillDir, p)
@@ -89,11 +108,6 @@ func walkSkillFiles(skillDir string) (paths []string, skipped []string) {
 			skipped = append(skipped, "depth-limit:"+rel)
 			return nil
 		}
-		for _, part := range parts {
-			if skipDirs[part] {
-				return nil
-			}
-		}
 		base := info.Name()
 		if strings.HasPrefix(base, ".") && !strings.HasPrefix(base, ".claude") && !includedDotfiles[base] {
 			return nil
@@ -104,15 +118,15 @@ func walkSkillFiles(skillDir string) (paths []string, skipped []string) {
 				skipped = append(skipped, "symlink-error:"+rel)
 				return nil
 			}
-			rootResolved, _ := filepath.EvalSymlinks(skillDir)
 			if !isWithin(rootResolved, resolved) {
 				skipped = append(skipped, "symlink-escape:"+rel)
 				return nil
 			}
 		}
 		if len(paths) >= maxFileCount {
+			// Budget exhausted: record and stop traversing entirely.
 			skipped = append(skipped, "file-count-limit:"+rel)
-			return nil
+			return errStopWalk
 		}
 		size := info.Size()
 		if totalBytes+size > maxTotalScanBytes {
@@ -123,6 +137,9 @@ func walkSkillFiles(skillDir string) (paths []string, skipped []string) {
 		paths = append(paths, rel)
 		return nil
 	})
+	if err != nil && err != errStopWalk {
+		skipped = append(skipped, "walk-error:"+err.Error())
+	}
 	sort.Strings(paths)
 	return paths, skipped
 }
