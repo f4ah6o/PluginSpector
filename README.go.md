@@ -36,6 +36,14 @@ Exit codes (so it can gate an install/preview flow):
 Risk bands match the upstream tool: 0–20 LOW (SAFE), 21–50 MEDIUM (CAUTION),
 51–80 HIGH and 81–100 CRITICAL (both DO NOT INSTALL).
 
+Exit code `1` is returned when the risk score exceeds 50 **or** when an
+always-blocking structural finding is present — currently a host-filesystem
+escape (`CP002` declared-path escape, `CP003` symlink escape). These gate the
+install regardless of the aggregate score, since a single such finding can
+smuggle external files into the scanned target. `Result.ShouldBlockInstall()`
+encodes the same rule for library callers, and `Result.BlockReasons()` lists
+the offending rule IDs.
+
 ## Library use (e.g. from gh-agent-plugin)
 
 ```go

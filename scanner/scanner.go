@@ -53,9 +53,43 @@ type Result struct {
 	SkippedFiles       []string
 }
 
+// blockingRuleIDs gate installation regardless of the aggregate risk score.
+// These are host-filesystem escapes that can smuggle external files into the
+// scanned target; a single occurrence (HIGH = 25, below the >50 threshold)
+// must still block an install, so they are special-cased here.
+var blockingRuleIDs = map[string]bool{
+	"CP002": true, // declared component path escapes the plugin/scan root
+	"CP003": true, // symlink escapes the scan root
+}
+
 // ShouldBlockInstall reports whether the scanned target should be blocked from
-// install/preview. Mirrors the CLI gate (risk score above 50).
-func (r *Result) ShouldBlockInstall() bool { return r.RiskScore > 50 }
+// install/preview. It blocks when the aggregate risk score exceeds 50 (the CLI
+// gate) or when any always-blocking structural finding is present.
+func (r *Result) ShouldBlockInstall() bool {
+	if r.RiskScore > 50 {
+		return true
+	}
+	for _, f := range r.Findings {
+		if blockingRuleIDs[f.RuleID] {
+			return true
+		}
+	}
+	return false
+}
+
+// BlockReasons returns the rule IDs of always-blocking findings present in the
+// result (empty when the gate, if any, is driven purely by the risk score).
+func (r *Result) BlockReasons() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, f := range r.Findings {
+		if blockingRuleIDs[f.RuleID] && !seen[f.RuleID] {
+			seen[f.RuleID] = true
+			out = append(out, f.RuleID)
+		}
+	}
+	return out
+}
 
 // SarifJSON returns the indented SARIF 2.1.0 document for the result.
 func (r *Result) SarifJSON() []byte {

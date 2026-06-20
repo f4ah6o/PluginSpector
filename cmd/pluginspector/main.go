@@ -157,7 +157,12 @@ func run(args []string) int {
 		fmt.Println(result.ReportBody)
 	}
 
-	if result.RiskScore > 50 {
+	if result.ShouldBlockInstall() {
+		if result.RiskScore <= 50 {
+			// Score alone would pass; a structural escape forced the block.
+			fmt.Fprintf(os.Stderr, "Blocked: structural finding(s) %v gate installation regardless of risk score (%d/100).\n",
+				result.BlockReasons(), result.RiskScore)
+		}
 		return 1
 	}
 	return 0

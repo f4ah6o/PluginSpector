@@ -80,6 +80,26 @@ func TestSymlinkEscapeFindingNonPlugin(t *testing.T) {
 	if !found {
 		t.Fatalf("expected HIGH CP003 symlink-escape finding, got %+v", res.Findings)
 	}
+	// A lone HIGH finding scores only 25; the symlink escape must still gate the
+	// install via the always-blocking rule set (PR #10 review).
+	if !res.ShouldBlockInstall() {
+		t.Fatalf("symlink escape must block install; score=%d reasons=%v", res.RiskScore, res.BlockReasons())
+	}
+}
+
+func TestBlockReasons(t *testing.T) {
+	r := &Result{RiskScore: 10, Findings: []Finding{{RuleID: "P1"}, {RuleID: "CP003"}}}
+	if !r.ShouldBlockInstall() {
+		t.Fatal("CP003 must force a block even at a low score")
+	}
+	reasons := r.BlockReasons()
+	if len(reasons) != 1 || reasons[0] != "CP003" {
+		t.Fatalf("unexpected block reasons: %v", reasons)
+	}
+	clean := &Result{RiskScore: 10, Findings: []Finding{{RuleID: "P1"}}}
+	if clean.ShouldBlockInstall() || len(clean.BlockReasons()) != 0 {
+		t.Fatal("non-blocking low-score result must not block")
+	}
 }
 
 // TestSkipDirsPruned confirms files under excluded directories are not scanned.
