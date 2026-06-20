@@ -106,3 +106,9 @@ credentials.json
 
 # LangGraph API server
 .langgraph_api/
+
+# Go build artifacts
+/pluginspector
+/bin/
+*.test
+.venv-cmp/
