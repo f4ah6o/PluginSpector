@@ -78,8 +78,18 @@ func TestIsGitURLPreservesExistingBehavior(t *testing.T) {
 		}
 	}
 
-	// Generic .git URLs on unknown hosts are still accepted.
+	// Generic .git URLs on unknown hosts are still accepted (HTTPS and SCP).
 	if !isGitURL("https://codeberg.org/org/repo.git") {
 		t.Fatal("https://codeberg.org/org/repo.git should be treated as a git URL")
+	}
+	if !isGitURL("git@codeberg.org:org/repo.git") {
+		t.Fatal("git@codeberg.org:org/repo.git should be treated as a git URL")
+	}
+	if !isGitURL("git@git.company.example:team/repo.git") {
+		t.Fatal("git@git.company.example:team/repo.git should be treated as a git URL")
+	}
+	// SCP URLs with no .git suffix and an unknown host should not be accepted.
+	if isGitURL("git@evil.example.com:malicious/thing") {
+		t.Fatal("git@evil.example.com:malicious/thing must not be treated as a git URL")
 	}
 }

@@ -98,15 +98,19 @@ func isKnownGitHost(host string) bool {
 }
 
 func isGitURL(path string) bool {
-	// SCP-style URLs (git@host:org/repo.git) — parse the host and validate it
-	// with exact matching so "git@github.com.evil.tld:x/y.git" is rejected.
+	// SCP-style URLs (git@host:org/repo.git) — validate known hosts with exact
+	// matching; unknown hosts fall back to the .git suffix so self-hosted SSH
+	// repositories (e.g. git@codeberg.org:org/repo.git) are still accepted.
 	if strings.HasPrefix(path, "git@") {
 		withoutPrefix := strings.TrimPrefix(path, "git@")
 		colonIdx := strings.Index(withoutPrefix, ":")
 		if colonIdx < 0 {
 			return false
 		}
-		return isKnownGitHost(withoutPrefix[:colonIdx])
+		if isKnownGitHost(withoutPrefix[:colonIdx]) {
+			return true
+		}
+		return strings.HasSuffix(path, ".git")
 	}
 	if !(strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")) {
 		return false
