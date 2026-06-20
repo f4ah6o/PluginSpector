@@ -83,29 +83,49 @@ func (h *inputHandler) resolve(inputPath string) (string, string, error) {
 	return "", "", fmt.Errorf("cannot determine input type for: %s\nSupported formats: Git URL, file URL, .zip file, .md file, or directory", inputPath)
 }
 
-func isGitURL(path string) bool {
-	if !(strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") || strings.HasPrefix(path, "git@")) {
+// isKnownGitHost reports whether host is exactly one of the known Git hosting
+// services. Lowercasing and trailing-dot removal guard against trivial variants.
+// Substring matching is intentionally avoided: "github.com.evil.tld" must not
+// match "github.com".
+func isKnownGitHost(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	switch host {
+	case "github.com", "gitlab.com", "bitbucket.org":
+		return true
+	default:
 		return false
 	}
-	parsed, err := url.Parse(path)
-	host := ""
-	if err == nil {
-		host = parsed.Host
+}
+
+func isGitURL(path string) bool {
+	// SCP-style URLs (git@host:org/repo.git) — parse the host and validate it
+	// with exact matching so "git@github.com.evil.tld:x/y.git" is rejected.
+	if strings.HasPrefix(path, "git@") {
+		withoutPrefix := strings.TrimPrefix(path, "git@")
+		colonIdx := strings.Index(withoutPrefix, ":")
+		if colonIdx < 0 {
+			return false
+		}
+		return isKnownGitHost(withoutPrefix[:colonIdx])
+	}
+	if !(strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")) {
+		return false
 	}
 	// Downloadable archive URLs (e.g. github.com/org/repo/archive/refs/heads/
 	// main.zip) must go to the downloader/extractor, not `git clone`.
 	if strings.HasSuffix(path, ".zip") {
 		return false
 	}
-	gitHosts := []string{"github.com", "gitlab.com", "bitbucket.org"}
-	for _, gh := range gitHosts {
-		if strings.Contains(host, gh) {
-			if strings.Contains(path, "/raw/") || strings.Contains(path, "/blob/") ||
-				strings.HasSuffix(path, ".md") || strings.HasSuffix(path, ".py") || strings.HasSuffix(path, ".sh") {
-				return false
-			}
-			return true
+	parsed, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+	if isKnownGitHost(parsed.Hostname()) {
+		if strings.Contains(path, "/raw/") || strings.Contains(path, "/blob/") ||
+			strings.HasSuffix(path, ".md") || strings.HasSuffix(path, ".py") || strings.HasSuffix(path, ".sh") {
+			return false
 		}
+		return true
 	}
 	return strings.HasSuffix(path, ".git")
 }
