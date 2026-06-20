@@ -15,7 +15,9 @@
 
 """Tests for meta_analyzer use_llm state flag (--no-llm path)."""
 
+import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -146,3 +148,52 @@ def test_use_llm_true_strict_without_api_key_safe_skill_also_raises(
                 "strict_llm": True,
             }
         )
+
+
+def test_json_metadata_marks_llm_fallback_when_credentials_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """JSON report metadata must expose llm_failed/llm_fallback_used when credentials are absent."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (tmp_path / "SKILL.md").write_text("# Safe skill", encoding="utf-8")
+    result = graph.invoke(
+        {
+            "skill_path": str(tmp_path),
+            "use_llm": True,
+            "strict_llm": False,
+            "output_format": "json",
+        }
+    )
+    data = json.loads(result["report_body"])
+    meta = data["metadata"]
+    assert meta["llm_requested"] is True
+    assert meta["llm_available"] is False
+    assert meta["llm_used"] is False
+    assert meta["llm_failed"] is True
+    assert meta["llm_fallback_used"] is True
+    assert meta.get("llm_error") or meta.get("llm_availability_error")
+
+
+def test_strict_llm_runtime_failure_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """strict_llm=True must raise when LLM call fails at runtime (not just credential missing)."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy-key-for-testing")
+    monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (tmp_path / "SKILL.md").write_text("# Safe skill", encoding="utf-8")
+
+    with patch(
+        "pluginspector.nodes.meta_analyzer.LLMMetaAnalyzer",
+        side_effect=RuntimeError("mock LLM connection error"),
+    ):
+        with pytest.raises(ValueError, match="strict-llm"):
+            graph.invoke(
+                {
+                    "skill_path": str(tmp_path),
+                    "use_llm": True,
+                    "strict_llm": True,
+                }
+            )

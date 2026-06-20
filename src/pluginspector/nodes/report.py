@@ -31,7 +31,6 @@ from rich.panel import Panel
 from rich.table import Table
 
 from pluginspector import __version__ as pluginspector_version
-from pluginspector.llm_utils import is_llm_available
 from pluginspector.logging_config import get_logger
 from pluginspector.models import Finding
 from pluginspector.nodes.analyzers import ANALYZER_METADATA, ANALYZER_NODE_IDS
@@ -259,18 +258,19 @@ def _build_metadata(
     target_type: str | None = None,
     skipped_files: list[str] | None = None,
     llm_status: dict[str, object] | None = None,
+    llm_available: bool | None = None,
+    llm_availability_error: str | None = None,
 ) -> dict[str, object]:
     """Build the metadata section shared by all output formats."""
-    llm_available, llm_avail_error = is_llm_available()
     meta: dict[str, object] = {
         "has_executable_scripts": has_executable_scripts,
         "target_type": target_type or "standalone-skill",
         "pluginspector_version": pluginspector_version,
         "llm_requested": use_llm,
-        "llm_available": llm_available,
+        "llm_available": llm_available if llm_available is not None else (not use_llm or True),
     }
-    if use_llm and not llm_available:
-        meta["llm_error"] = llm_avail_error
+    if use_llm and llm_available is False:
+        meta["llm_availability_error"] = llm_availability_error
     # Merge runtime LLM execution status from meta_analyzer node
     if llm_status:
         meta.update(llm_status)
@@ -310,6 +310,8 @@ def _format_json(
     target_type: str | None = None,
     skipped_files: list[str] | None = None,
     llm_status: dict[str, object] | None = None,
+    llm_available: bool | None = None,
+    llm_availability_error: str | None = None,
 ) -> str:
     """Generate JSON report string."""
     skill_name = (manifest.get("name") or "unknown") if manifest else "unknown"
@@ -337,7 +339,13 @@ def _format_json(
         ],
         "issues": [f.to_dict() for f in findings],
         "metadata": _build_metadata(
-            has_executable_scripts, use_llm, target_type, skipped_files, llm_status
+            has_executable_scripts,
+            use_llm,
+            target_type,
+            skipped_files,
+            llm_status,
+            llm_available=llm_available,
+            llm_availability_error=llm_availability_error,
         ),
     }
     return json.dumps(data, indent=2)
@@ -428,6 +436,8 @@ def report(state: SkillspectorState) -> dict[str, object]:
     use_llm = state.get("use_llm", True)
     target_type = state.get("target_type")
     skipped_files = state.get("skipped_files") or []
+    llm_available: bool | None = state.get("llm_available")
+    llm_availability_error: str | None = state.get("llm_availability_error")
     llm_status: dict[str, object] = {
         k: state[k]  # type: ignore[literal-required]
         for k in (
@@ -474,6 +484,8 @@ def report(state: SkillspectorState) -> dict[str, object]:
             target_type=target_type,
             skipped_files=skipped_files,
             llm_status=llm_status,
+            llm_available=llm_available,
+            llm_availability_error=llm_availability_error,
         )
     elif output_format == "markdown":
         report_body = _format_markdown(

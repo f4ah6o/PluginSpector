@@ -92,9 +92,12 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
         logger.info("%s: %d findings", ANALYZER_ID, len(findings))
         return {"findings": findings}
     except ValidationError as exc:
-        # Malformed LLM response — degrade gracefully rather than crashing the graph
         logger.warning("%s: LLM returned malformed response: %s", ANALYZER_ID, exc)
+        if state.get("strict_llm", False):
+            raise ValueError(f"{ANALYZER_ID} failed under --strict-llm: {exc}") from exc
         return {"findings": []}
     except Exception as exc:
+        if state.get("strict_llm", False):
+            raise ValueError(f"{ANALYZER_ID} failed under --strict-llm: {exc}") from exc
         logger.warning("%s failed: %s", ANALYZER_ID, exc)
         return {"findings": []}

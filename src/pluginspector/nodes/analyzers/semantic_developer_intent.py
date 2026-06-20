@@ -181,5 +181,7 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
         logger.info("%s: %d findings", ANALYZER_ID, len(findings))
         return {"findings": findings}
     except Exception as exc:
+        if state.get("strict_llm", False):
+            raise ValueError(f"{ANALYZER_ID} failed under --strict-llm: {exc}") from exc
         logger.warning("%s failed: %s", ANALYZER_ID, exc)
         return {"findings": []}

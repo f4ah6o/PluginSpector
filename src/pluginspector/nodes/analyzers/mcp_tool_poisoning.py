@@ -795,8 +795,7 @@ Respond in JSON matching this exact schema:
         ]
 
     except Exception:
-        logger.warning("%s: TP4 LLM check failed, skipping", ANALYZER_ID, exc_info=True)
-        return []
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -830,12 +829,16 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
     if isinstance(params, list):
         findings.extend(_check_tp3(params))
 
-    # TP4: LLM-based check (only when use_llm is enabled). Defaults to True to
-    # match every other LLM-using node (semantic_*, meta_analyzer); the CLI
-    # always sets this explicitly, so the default only affects programmatic
-    # callers that omit the key.
-    if state.get("use_llm", True):
-        findings.extend(_check_tp4(state))
+    # TP4: LLM-based check (only when use_llm and llm_available are both True).
+    if state.get("use_llm", True) and state.get("llm_available", True):
+        try:
+            findings.extend(_check_tp4(state))
+        except Exception as exc:
+            if state.get("strict_llm", False):
+                raise ValueError(
+                    f"mcp_tool_poisoning TP4 failed under --strict-llm: {exc}"
+                ) from exc
+            logger.warning("%s: TP4 failed, skipping: %s", ANALYZER_ID, exc)
 
     logger.info("%s: %d findings", ANALYZER_ID, len(findings))
     return {"findings": findings}
