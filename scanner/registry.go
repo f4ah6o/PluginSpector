@@ -46,7 +46,7 @@ var analyzers = []analyzerEntry{
 	{id: "static_yara", status: statusStub, ruleIDs: []string{"YARA"}, notes: "YARA signature scanning is not ported to pure Go."},
 	{id: "behavioral_ast", status: statusStub, ruleIDs: []string{"BA1", "BA2"}, notes: "Python-AST behavioral analysis is not ported to pure Go."},
 	{id: "behavioral_taint_tracking", status: statusStub, ruleIDs: []string{"BT1", "BT2"}, notes: "Python-AST taint tracking is not ported to pure Go."},
-	{id: "mcp_least_privilege", status: statusStub, ruleIDs: []string{"LP1", "LP2", "LP3"}, notes: "Not yet ported."},
+	{id: "mcp_least_privilege", status: statusBeta, ruleIDs: []string{"LP1", "LP2", "LP3", "LP4"}, fn: mcpLeastPrivilegeAnalyzer},
 	{id: "mcp_tool_poisoning", status: statusStub, requiresLLM: true, ruleIDs: []string{"TP1", "TP2", "TP3", "TP4"}, notes: "Not yet ported."},
 	{id: "mcp_rug_pull", status: statusStub, ruleIDs: []string{"RP1", "RP2", "RP3"}, notes: "Requires previous manifest for diff; not implemented."},
 	{id: "semantic_security_discovery", status: statusStub, requiresLLM: true, ruleIDs: []string{"SD1"}, notes: "LLM analyzer; not ported."},

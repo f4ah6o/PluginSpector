@@ -67,6 +67,8 @@ Python rules (identical rule IDs, severities, confidences, and finding shape):
   offline fallback list; the live OSV.dev lookup is not yet ported.*
 - Claude plugin structure (CP001–CP003), with full plugin manifest/structure
   parsing and target-type detection.
+- MCP least privilege (LP1–LP4): declared permissions vs. detected code
+  capabilities.
 
 The regex rules are evaluated with [`dlclark/regexp2`](https://github.com/dlclark/regexp2)
 (pure Go) because several upstream patterns use negative lookahead and
@@ -79,7 +81,7 @@ clean report does **not** imply absence of issues in their categories:
 
 - `static_yara` — YARA signature scanning (pure-Go decision: no cgo/libyara).
 - `behavioral_ast`, `behavioral_taint_tracking` — depend on a Python AST parser.
-- `mcp_least_privilege`, `mcp_tool_poisoning`, `mcp_rug_pull`.
+- `mcp_tool_poisoning`, `mcp_rug_pull`.
 - `semantic_*` — LLM-backed analyzers. Requesting LLM analysis (the default;
   pass `--no-llm` to opt out) reports a static-only fallback, matching the
   upstream behavior when no LLM credentials are configured.
