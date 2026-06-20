@@ -25,33 +25,33 @@ from unittest.mock import patch
 
 import pytest
 
-from skillspector.models import Severity
-from skillspector.nodes.analyzers import (
+from pluginspector.models import Severity
+from pluginspector.nodes.analyzers import (
     static_patterns_excessive_agency as ea_mod,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_memory_poisoning as mp_mod,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_output_handling as oh_mod,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_rogue_agent as ra_mod,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_supply_chain as sc_mod,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_system_prompt_leakage as spl_mod,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_tool_misuse as tm_mod,
 )
-from skillspector.nodes.analyzers.osv_client import VulnResult
+from pluginspector.nodes.analyzers.osv_client import VulnResult
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 
-_OSV_PATCH_TARGET = "skillspector.nodes.analyzers.static_patterns_supply_chain.query_batch"
+_OSV_PATCH_TARGET = "pluginspector.nodes.analyzers.static_patterns_supply_chain.query_batch"
 
 
 def _make_vuln(

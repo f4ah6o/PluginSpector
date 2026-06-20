@@ -50,11 +50,11 @@ test-integration:
 
 # Run tests with coverage
 test-cov:
-	pytest --cov=src/skillspector --cov-report=html --cov-report=term-missing tests/
+	pytest --cov=src/pluginspector --cov-report=html --cov-report=term-missing tests/
 
 # Run tests with coverage for CI (Cobertura XML + terminal)
 test-ci:
-	pytest --cov=src/skillspector --cov-report=term-missing --cov-report=xml tests/
+	pytest --cov=src/pluginspector --cov-report=term-missing --cov-report=xml tests/
 
 # Run linters (fast: ruff only)
 lint:
@@ -98,7 +98,7 @@ build: clean
 
 # Build the Docker image
 docker-build:
-	docker build -t skillspector .
+	docker build -t pluginspector .
 
 # Build and smoke test the Docker image
 docker-smoke: docker-build

@@ -24,9 +24,9 @@ from pathlib import Path
 
 import pytest
 
-from skillspector.constants import MODEL_CONFIG
-from skillspector.nodes.build_context import build_context
-from skillspector.state import SkillspectorState
+from pluginspector.constants import MODEL_CONFIG
+from pluginspector.nodes.build_context import build_context
+from pluginspector.state import SkillspectorState
 
 
 def _make_skill_spec_dir(root: Path, *, skill_md_name: str = "SKILL.md") -> None:

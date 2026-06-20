@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from skillspector.nodes.analyzers import behavioral_taint_tracking
+from pluginspector.nodes.analyzers import behavioral_taint_tracking
 
 
 def _run(code: str, filename: str = "script.py") -> list:
@@ -259,7 +259,7 @@ class TestEdgeCases:
         assert result["findings"] == []
 
     def test_oversized_file_skipped(self):
-        from skillspector.nodes.analyzers.static_runner import MAX_FILE_BYTES
+        from pluginspector.nodes.analyzers.static_runner import MAX_FILE_BYTES
 
         big = 'import os\nexec(os.environ.get("KEY"))\n' + ("x = 1\n" * MAX_FILE_BYTES)
         state = {"components": ["big.py"], "file_cache": {"big.py": big}}

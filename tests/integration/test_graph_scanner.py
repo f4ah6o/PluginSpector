@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from skillspector.graph import graph
+from pluginspector.graph import graph
 
 
 class TestGraphScanSafeSkill:

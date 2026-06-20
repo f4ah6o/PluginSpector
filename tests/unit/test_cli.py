@@ -17,9 +17,10 @@
 
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
-from skillspector.cli import app
+from pluginspector.cli import app
 
 runner = CliRunner()
 
@@ -28,7 +29,7 @@ def test_cli_version() -> None:
     """--version prints version and exits 0."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "SkillSpector" in result.output
+    assert "PluginSpector" in result.output
     assert "v" in result.output
 
 
@@ -67,3 +68,33 @@ def test_cli_scan_nonexistent_exits_2() -> None:
     result = runner.invoke(app, ["scan", "/nonexistent/path/xyz"])
     assert result.exit_code == 2
     assert "Error" in result.output or "error" in result.output.lower()
+
+
+def test_cli_strict_llm_without_api_key_exits_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--strict-llm without API key must exit 2."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (tmp_path / "SKILL.md").write_text("# Safe skill", encoding="utf-8")
+    result = runner.invoke(app, ["scan", str(tmp_path), "--strict-llm", "--format", "json"])
+    assert result.exit_code == 2
+
+
+def test_cli_non_strict_llm_without_api_key_outputs_fallback_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without API key and without --strict-llm, exit is 0 and JSON metadata shows fallback."""
+    import json
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_INFERENCE_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (tmp_path / "SKILL.md").write_text("# Safe skill", encoding="utf-8")
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code in (0, 1)
+    data = json.loads(result.output)
+    meta = data["metadata"]
+    assert meta.get("llm_fallback_used") is True
+    assert meta.get("llm_failed") is True

@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from skillspector.nodes.analyzers import claude_components
-from skillspector.nodes.build_context import build_context
+from pluginspector.nodes.analyzers import claude_components
+from pluginspector.nodes.build_context import build_context
 
 
 def _write(path: Path, content: str) -> None:

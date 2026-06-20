@@ -15,20 +15,20 @@
 
 """Pattern tests: direct analyze() on static_patterns_* modules."""
 
-from skillspector.models import Severity
-from skillspector.nodes.analyzers import (
+from pluginspector.models import Severity
+from pluginspector.nodes.analyzers import (
     static_patterns_data_exfiltration as data_exfiltration_module,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_harmful_content as harmful_content_module,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_privilege_escalation as privilege_escalation_module,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_prompt_injection as prompt_injection_module,
 )
-from skillspector.nodes.analyzers import (
+from pluginspector.nodes.analyzers import (
     static_patterns_supply_chain as supply_chain_module,
 )
 

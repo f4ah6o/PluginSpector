@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from skillspector.nodes.analyzers.osv_client import (
+from pluginspector.nodes.analyzers.osv_client import (
     ECOSYSTEM_NPM,
     ECOSYSTEM_PYPI,
     VulnResult,
@@ -153,7 +153,7 @@ class TestQueryBatch:
         mock_client.get.return_value = mock_get_resp
 
         with patch(
-            "skillspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
+            "pluginspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
         ):
             results = query_batch(
                 [("jinja2", "2.4.1"), ("requests", "2.31.0")],
@@ -174,7 +174,7 @@ class TestQueryBatch:
         mock_client.post.side_effect = httpx.ConnectError("Connection refused")
 
         with patch(
-            "skillspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
+            "pluginspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
         ):
             results = query_batch([("jinja2", "2.4.1")], ECOSYSTEM_PYPI)
 
@@ -187,7 +187,7 @@ class TestQueryBatch:
         mock_client.post.side_effect = httpx.TimeoutException("Timed out")
 
         with patch(
-            "skillspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
+            "pluginspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
         ):
             results = query_batch([("lodash", "4.17.20")], ECOSYSTEM_NPM)
 
@@ -226,7 +226,7 @@ class TestQueryBatch:
         _cache[("jinja2", "2.4.1", "PyPI")] = (time.monotonic(), [cached_vuln])
 
         with patch(
-            "skillspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
+            "pluginspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
         ):
             results = query_batch(
                 [("jinja2", "2.4.1"), ("requests", "2.31.0")],
@@ -266,7 +266,7 @@ class TestQueryBatch:
         mock_client.get.return_value = mock_get_resp
 
         with patch(
-            "skillspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
+            "pluginspector.nodes.analyzers.osv_client.httpx.Client", return_value=mock_client
         ):
             results = query_batch([("lodash", "4.17.20")], ECOSYSTEM_NPM)
 

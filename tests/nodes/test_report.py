@@ -19,9 +19,9 @@ from __future__ import annotations
 
 import json
 
-from skillspector.models import Finding
-from skillspector.nodes.report import report
-from skillspector.state import SkillspectorState
+from pluginspector.models import Finding
+from pluginspector.nodes.report import report
+from pluginspector.state import SkillspectorState
 
 
 def _finding(rule_id: str, severity: str = "LOW", message: str = "test") -> Finding:
@@ -146,7 +146,7 @@ def test_report_output_format_json() -> None:
 
 
 def test_report_output_format_markdown() -> None:
-    """output_format markdown produces report_body with # SkillSpector and ## Risk Assessment."""
+    """output_format markdown produces report_body with # PluginSpector and ## Risk Assessment."""
     state: SkillspectorState = {
         "filtered_findings": [],
         "component_metadata": [],
@@ -157,14 +157,14 @@ def test_report_output_format_markdown() -> None:
     }
     result = report(state)
     body = result["report_body"]
-    assert "# SkillSpector Security Report" in body
+    assert "# PluginSpector Security Report" in body
     assert "## Risk Assessment" in body
     assert "## Components" in body
     assert "## Issues" in body
 
 
 def test_report_output_format_terminal() -> None:
-    """output_format terminal produces report_body with SkillSpector and Risk Assessment."""
+    """output_format terminal produces report_body with PluginSpector and Risk Assessment."""
     state: SkillspectorState = {
         "filtered_findings": [],
         "component_metadata": [],
@@ -175,7 +175,7 @@ def test_report_output_format_terminal() -> None:
     }
     result = report(state)
     body = result["report_body"]
-    assert "SkillSpector" in body
+    assert "PluginSpector" in body
     assert "Risk Assessment" in body
     assert "cli-test" in body
 

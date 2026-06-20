@@ -23,9 +23,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from skillspector.llm_analyzer_base import LLMAnalysisResult, LLMFinding
-from skillspector.models import Finding
-from skillspector.nodes.analyzers.semantic_security_discovery import (
+from pluginspector.llm_analyzer_base import LLMAnalysisResult, LLMFinding
+from pluginspector.models import Finding
+from pluginspector.nodes.analyzers.semantic_security_discovery import (
     ANALYZER_ID,
     ANALYZER_PROMPT,
     node,
@@ -35,7 +35,7 @@ from skillspector.nodes.analyzers.semantic_security_discovery import (
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-MOCK_PATCH_TARGET = "skillspector.llm_analyzer_base.get_chat_model"
+MOCK_PATCH_TARGET = "pluginspector.llm_analyzer_base.get_chat_model"
 
 
 def _mock_get_chat_model(*_args, **_kwargs):
@@ -89,7 +89,7 @@ class TestSemanticSecurityDiscoveryNode:
     @patch(MOCK_PATCH_TARGET, _mock_get_chat_model)
     def test_returns_findings_from_llm(self, base_state) -> None:
         expected_finding = _make_finding("SSD-1")
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -117,7 +117,7 @@ class TestSemanticSecurityDiscoveryNode:
     @patch(MOCK_PATCH_TARGET, _mock_get_chat_model)
     def test_all_ssd_rule_ids_pass_through(self, base_state) -> None:
         findings = [_make_finding(rid) for rid in ("SSD-1", "SSD-2", "SSD-3", "SSD-4")]
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -158,7 +158,7 @@ class TestSemanticSecurityDiscoveryPrompt:
 class TestSemanticSecurityDiscoveryBatching:
     @patch(MOCK_PATCH_TARGET, _mock_get_chat_model)
     def test_single_file_one_batch(self, base_state) -> None:
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(LLMAnalyzerBase, "run_batches", return_value=[]) as mock_run:
             node(base_state)
@@ -175,10 +175,10 @@ class TestSemanticSecurityDiscoveryBatching:
         base_state["file_cache"] = {"SKILL.md": long_content}
         base_state["components"] = ["SKILL.md"]
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch(
-            "skillspector.llm_analyzer_base.get_max_input_tokens",
+            "pluginspector.llm_analyzer_base.get_max_input_tokens",
             return_value=50,
         ):
             with patch.object(LLMAnalyzerBase, "run_batches", return_value=[]) as mock_run:
@@ -202,7 +202,7 @@ class TestUseLlmGuard:
             "file_cache": {"SKILL.md": "# Skill"},
         }
         with patch(MOCK_PATCH_TARGET, _mock_get_chat_model):
-            from skillspector.llm_analyzer_base import LLMAnalyzerBase
+            from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
             with patch.object(LLMAnalyzerBase, "run_batches", return_value=[]):
                 result = node(state)
@@ -253,7 +253,7 @@ class TestModelResolution:
 
     @patch(MOCK_PATCH_TARGET)
     def test_falls_back_to_constant_default(self, mock_get_model: MagicMock) -> None:
-        from skillspector.constants import _SKILLSPECTOR_DEFAULT_MODEL
+        from pluginspector.constants import _PLUGINSPECTOR_DEFAULT_MODEL
 
         mock_llm = MagicMock()
         mock_llm.with_structured_output.return_value = MagicMock()
@@ -264,7 +264,7 @@ class TestModelResolution:
 
         state = {"file_cache": {"SKILL.md": "# Skill"}, "model_config": {}}
         node(state)
-        assert mock_get_model.call_args.kwargs.get("model") == _SKILLSPECTOR_DEFAULT_MODEL
+        assert mock_get_model.call_args.kwargs.get("model") == _PLUGINSPECTOR_DEFAULT_MODEL
 
 
 # ---------------------------------------------------------------------------
@@ -298,7 +298,7 @@ class TestErrorHandling:
         else:
             pytest.fail("Expected ValidationError from bad data")
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(LLMAnalyzerBase, "run_batches", side_effect=validation_err):
             result = node({"file_cache": {"SKILL.md": "# Skill"}})
@@ -327,7 +327,7 @@ def _build_file_cache(skill_dir: Path) -> dict[str, str]:
 
 def _make_file_aware_run_batches(responses: dict[str, LLMAnalysisResult]):
     """Return a mock run_batches that dispatches based on file_path in each batch."""
-    from skillspector.llm_analyzer_base import Batch
+    from pluginspector.llm_analyzer_base import Batch
 
     def _run_batches(self_inner, batches: list[Batch], **_kwargs):
         results = []
@@ -383,7 +383,7 @@ class TestFixtureConftestMalicious:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -402,7 +402,7 @@ class TestFixtureConftestMalicious:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -420,7 +420,7 @@ class TestFixtureConftestMalicious:
         file_cache = _build_file_cache(malicious_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -444,7 +444,7 @@ class TestFixtureConftestSafe:
         file_cache = _build_file_cache(safe_skill_dir)
         state = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -491,7 +491,7 @@ class TestFixtureSsd1SemanticInjection:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -543,7 +543,7 @@ class TestFixtureSsd2NovelPhrasing:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -594,7 +594,7 @@ class TestFixtureSsd3NlExfiltration:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -644,7 +644,7 @@ class TestFixtureSsd4NarrativeDeception:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(
             LLMAnalyzerBase,
@@ -675,7 +675,7 @@ class TestFixtureSsdClean:
         file_cache = _build_file_cache(skill_dir)
         state: dict = {"file_cache": file_cache}
 
-        from skillspector.llm_analyzer_base import LLMAnalyzerBase
+        from pluginspector.llm_analyzer_base import LLMAnalyzerBase
 
         with patch.object(LLMAnalyzerBase, "run_batches", return_value=[]):
             result = node(state)

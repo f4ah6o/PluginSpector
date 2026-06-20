@@ -28,5 +28,5 @@ def mock_llm():
     mock_chat = MagicMock()
     mock_structured = MagicMock()
     mock_chat.with_structured_output.return_value = mock_structured
-    with patch("skillspector.llm_analyzer_base.get_chat_model", return_value=mock_chat):
+    with patch("pluginspector.llm_analyzer_base.get_chat_model", return_value=mock_chat):
         yield mock_structured  # tests set .ainvoke = AsyncMock(return_value=...)

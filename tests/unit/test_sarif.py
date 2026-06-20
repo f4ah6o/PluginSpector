@@ -20,7 +20,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from skillspector.sarif_models import (
+from pluginspector.sarif_models import (
     SARIF_SCHEMA_URI,
     SarifArtifactLocation,
     SarifDriver,

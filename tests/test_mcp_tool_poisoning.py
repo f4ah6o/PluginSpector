@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from skillspector.nodes.analyzers import mcp_tool_poisoning
+from pluginspector.nodes.analyzers import mcp_tool_poisoning
 
 # ---------------------------------------------------------------------------
 # Fixture directory path
@@ -608,7 +608,7 @@ class TestTP4Fallbacks:
 
         state = _make_state("mcp_mismatched_skill", use_llm=True)
         with patch(
-            "skillspector.nodes.analyzers.mcp_tool_poisoning.chat_completion",
+            "pluginspector.nodes.analyzers.mcp_tool_poisoning.chat_completion",
             side_effect=RuntimeError("timeout"),
         ):
             result = node(state)
@@ -620,7 +620,7 @@ class TestTP4Fallbacks:
 
         state = _make_state("mcp_mismatched_skill", use_llm=True)
         with patch(
-            "skillspector.nodes.analyzers.mcp_tool_poisoning.chat_completion",
+            "pluginspector.nodes.analyzers.mcp_tool_poisoning.chat_completion",
             return_value="this is not json at all {{{",
         ):
             result = node(state)
@@ -643,7 +643,7 @@ class TestFullPipelineIntegration:
 
     def test_full_pipeline_poisoned_skill(self):
         """TP1+TP2 findings survive meta_analyzer filtering."""
-        from skillspector.graph import create_graph
+        from pluginspector.graph import create_graph
 
         fixture_path = str(FIXTURES_DIR / "mcp_poisoned_tool")
         graph = create_graph()
@@ -661,7 +661,7 @@ class TestFullPipelineIntegration:
 
     def test_full_pipeline_clean_skill(self):
         """Clean skill produces no MCP findings through full pipeline."""
-        from skillspector.graph import create_graph
+        from pluginspector.graph import create_graph
 
         fixture_path = str(FIXTURES_DIR / "mcp_clean_skill")
         graph = create_graph()
@@ -678,7 +678,7 @@ class TestFullPipelineIntegration:
 
     def test_sarif_output_contains_tp_rules(self):
         """SARIF output includes TP rule IDs and ASI02 tags."""
-        from skillspector.graph import create_graph
+        from pluginspector.graph import create_graph
 
         fixture_path = str(FIXTURES_DIR / "mcp_poisoned_tool")
         graph = create_graph()
@@ -699,7 +699,7 @@ class TestFullPipelineIntegration:
 
     def test_no_llm_mode_excludes_tp4(self):
         """With use_llm=False, TP4 should not appear."""
-        from skillspector.graph import create_graph
+        from pluginspector.graph import create_graph
 
         fixture_path = str(FIXTURES_DIR / "mcp_poisoned_tool")
         graph = create_graph()
