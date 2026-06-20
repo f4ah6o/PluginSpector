@@ -267,7 +267,7 @@ def _build_metadata(
         "target_type": target_type or "standalone-skill",
         "pluginspector_version": pluginspector_version,
         "llm_requested": use_llm,
-        "llm_available": llm_available if llm_available is not None else (not use_llm or True),
+        "llm_available": True if llm_available is None else llm_available,
     }
     if use_llm and llm_available is False:
         meta["llm_availability_error"] = llm_availability_error
